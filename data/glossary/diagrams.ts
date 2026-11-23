@@ -1,6 +1,8 @@
 // Small inline-SVG diagrams for glossary entries, drawn for PaperPeek (CC BY 4.0).
 // Colours come from classes styled inside the popup, so they follow its theme.
 
+import { gelu, softmax } from '../../core/demo-math';
+
 const W = 340;
 
 function svg(height: number, label: string, body: string): string {
@@ -53,11 +55,7 @@ function bars(values: number[], left: number, base: number, scale: number): stri
 }
 
 const scores = [2, 1, 0.1, -1];
-const exp = scores.map(Math.exp);
-const sum = exp.reduce((a, b) => a + b, 0);
-const probs = exp.map((e) => e / sum);
-
-const gelu = (x: number): number => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x ** 3)));
+const probs = softmax(scores);
 // Activation plot: x ∈ [−3, 3], y ∈ [−1, 3] mapped to 0..1.
 const toUnit = (y: number): number => (y + 1) / 4;
 

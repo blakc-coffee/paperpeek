@@ -8,6 +8,8 @@ export interface GlossaryEntry {
   short: string;
   formula?: string;
   diagram?: string;
+  /** Key into ui/demos DEMOS: an interactive widget behind "Try it". */
+  demo?: string;
 }
 
 export interface TermMatch {

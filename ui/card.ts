@@ -4,6 +4,7 @@
 import type { GlossaryEntry } from '../core/glossary';
 import type { LookupResult } from '../core/symbol-table';
 import { DIAGRAMS } from '../data/glossary/diagrams';
+import { DEMOS } from './demos';
 
 const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
 const UNSAFE_ATTR = /^(?:on|href$|xlink:href$|src$|srcset$|style$)/i;
@@ -173,7 +174,7 @@ export function renderFigureCard(
 }
 
 /** An AI/ML term from the bundled glossary: explanation, formula, diagram, source. */
-export function renderTermCard(doc: Document, entry: GlossaryEntry): HTMLElement {
+export function renderTermCard(doc: Document, entry: GlossaryEntry, onResize: () => void = () => {}): HTMLElement {
   const card = el(doc, 'div', 'card is-term');
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-label', `AI/ML term: ${entry.term}`);
@@ -182,13 +183,36 @@ export function renderTermCard(doc: Document, entry: GlossaryEntry): HTMLElement
   card.append(head, el(doc, 'p', 'short', entry.short));
   if (entry.formula) card.appendChild(el(doc, 'div', 'formula', entry.formula));
   const svg = entry.diagram ? DIAGRAMS[entry.diagram] : undefined;
+  const diagram = el(doc, 'div', 'diagram');
   if (svg) {
     // Our own bundled markup, parsed as XML (never page content).
-    const diagram = el(doc, 'div', 'diagram');
     diagram.appendChild(doc.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true));
     card.appendChild(diagram);
   }
   const foot = el(doc, 'div', 'foot');
+  const build = entry.demo ? DEMOS[entry.demo] : undefined;
+  if (build) {
+    // The demo is built on first press only; the static diagram comes back on "Hide demo".
+    let demo: HTMLElement | null = null;
+    const toggle = el(doc, 'button', 'jump', '▶ Try it');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.addEventListener('click', () => {
+      const opening = !demo?.parentNode;
+      if (opening) {
+        demo ??= build(doc);
+        diagram.remove();
+        foot.before(demo);
+      } else {
+        demo?.remove();
+        if (svg) foot.before(diagram);
+      }
+      toggle.textContent = opening ? 'Hide demo' : '▶ Try it';
+      toggle.setAttribute('aria-expanded', String(opening));
+      onResize();
+    });
+    foot.appendChild(toggle);
+  }
   foot.appendChild(el(doc, 'span', 'note', 'PaperPeek glossary · CC BY 4.0'));
   card.appendChild(foot);
   return card;

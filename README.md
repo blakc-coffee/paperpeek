@@ -22,7 +22,13 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ![PaperPeek term popup on arxiv.org: highlighted terms in §3.1 and a popup for multi-head attention with its explanation, formula and a heads → Concat → Linear diagram](docs/images/real-term-arxiv.jpg)
 
-> The images below are design mockups (the softmax temperature demo arrives in v0.5).
+**Real screenshot (v0.5)** — terms with a ▶ **Try it** button open a small interactive demo; here the softmax temperature slider at T = 0.4:
+
+![PaperPeek softmax demo on arxiv.org: a temperature slider at T = 0.4 turns scores 2, 1, 0.1, −1 into probabilities 0.92, 0.08, 0.01, 0.00](docs/images/real-demo-softmax.jpg)
+
+Five demos ship today: **softmax temperature**, **activation functions** (ReLU / GELU / sigmoid at any x), **toy self-attention heatmap** (score-scale slider), **gradient descent on x²** (learning-rate slider, shows divergence above η = 1), and **dropout** (drop-rate slider + resample).
+
+> The images below are the original design mockups.
 
 **Hover a symbol** → its definition, quoted from the paper, with a jump link:
 
@@ -43,7 +49,7 @@ What PaperPeek shows when you hover these on [arxiv.org/html/1706.03762](https:/
 | `h` | Symbol | "number of parallel attention heads" · the value used in the paper (8) |
 | "multi-head attention" | AI/ML term | short explanation · formula · diagram of heads being concatenated |
 | "residual connection" | AI/ML term | explanation · `y = x + F(x)` · skip-connection diagram |
-| "softmax" | AI/ML term | explanation · formula · scores → probabilities diagram (temperature slider in v0.5) |
+| "softmax" | AI/ML term | explanation · formula · scores → probabilities diagram · ▶ Try it: temperature slider |
 | "Figure 2" link | Figure | both diagram panels and the caption, inline · jump link |
 | "Table 1" link | Table | the table (scrollable, with its math) and caption · jump link |
 | "label smoothing" (not in the bundled glossary) | AI/ML term | Wikipedia summary + thumbnail, with CC BY-SA credit (opt-in) |
@@ -79,7 +85,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), and 71 AI/ML terms are highlighted with explanation popups (v0.4). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), 71 AI/ML terms are highlighted with explanation popups (v0.4), and five of them open interactive demos (v0.5). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -97,7 +103,7 @@ Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpack
 - [x] v0.2 Hover popup
 - [x] v0.3 Figure previews
 - [x] v0.4 ML term glossary + highlighting
-- [ ] v0.5 Interactive demos
+- [x] v0.5 Interactive demos
 - [ ] v0.6 Wikipedia fallback (opt-in)
 - [ ] v0.7 Glossary build pipeline
 - [ ] v0.8 Multi-site adapters
