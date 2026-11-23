@@ -17,10 +17,12 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "typecheck": "tsc --noEmit",
+    "lint:ext": "web-ext lint -s .output/firefox-mv3",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
     "typescript": "7.0.2",
+    "web-ext": "^10.8.0",
     "wxt": "0.21.5"
   }
 }
