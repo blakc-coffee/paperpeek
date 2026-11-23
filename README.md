@@ -2,7 +2,7 @@
 
 **Hover any symbol, AI/ML term or figure in a paper and see what it means, right where you are reading.**
 
-[Website](https://blakc-coffee.github.io/paperpeek/) · [Privacy policy](https://blakc-coffee.github.io/paperpeek/privacy.html) · [Accuracy on SymDef](docs/eval.md)
+[Website](https://blakc-coffee.github.io/paperpeek/) · [Privacy policy](https://blakc-coffee.github.io/paperpeek/privacy.html) · [Accuracy on SymDef](docs/eval.md) · [Performance](docs/performance.md)
 
 ![Hovering d_k in Attention Is All You Need shows "queries and keys of dimension", its section, the defining sentence, and a Jump to definition button](docs/images/symbol.png)
 
