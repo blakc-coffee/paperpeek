@@ -3,10 +3,21 @@
 // so symbols are read from the MathML tree rather than from rendered glyphs.
 
 // Superscripts that modify a symbol instead of naming a new one: K^T is still K.
-const MODIFIER_SUPS = new Set(['T', '⊤', '′', '″', '*', '∗', '†', '−1', '-1']);
+const MODIFIER_SUPS = new Set(['T', '⊤', '′', '″', '*', '∗', '†']);
+const NUMERIC = /^[−-]?[\d.]+$/;
 const SKIP = new Set(['annotation', 'annotation-xml']);
+// Number sets and constants are notation, not author-defined symbols.
+const NOT_SYMBOLS = new Set(['ℝ', 'ℕ', 'ℤ', 'ℚ', 'ℂ', '∞']);
+// LaTeXML separates the letters of italic words (pos, warmup) with invisible <mo> separators (U+200B, U+2062).
+const INVISIBLE = /[\s\u200b-\u200d\u2060-\u2064\ufeff]/g;
+const MIN_WORD_LETTERS = 3;
 
-const text = (el: Element): string => (el.textContent ?? '').replace(/\s+/g, '');
+const text = (el: Element): string => (el.textContent ?? '').replace(INVISIBLE, '');
+
+const isLetterIdentifier = (el: Element): boolean => {
+  const t = text(el);
+  return el.localName === 'mi' && [...t].length === 1 && /\p{L}/u.test(t) && !NOT_SYMBOLS.has(t);
+};
 
 /** Unwrap <mrow> wrappers that hold a single child (LaTeXML emits these around bases). */
 function unwrap(el: Element | undefined): Element | undefined {
@@ -15,8 +26,7 @@ function unwrap(el: Element | undefined): Element | undefined {
 }
 
 /** A superscript is a modifier (transpose, prime, inverse) or a power (x^2) — not part of the name. */
-const isModifier = (sup: Element): boolean =>
-  unwrap(sup)?.localName === 'mn' || MODIFIER_SUPS.has(text(sup));
+const isModifier = (sup: Element): boolean => NUMERIC.test(text(sup)) || MODIFIER_SUPS.has(text(sup));
 
 /**
  * Stable key for a MathML element, or null if it is not a symbol.
@@ -27,10 +37,8 @@ export function symbolKey(node: Element | undefined): string | null {
   if (!el) return null;
   const [a, b, c] = Array.from(el.children);
   switch (el.localName) {
-    case 'mi': {
-      const t = text(el);
-      return [...t].length === 1 ? t : null;
-    }
+    case 'mi':
+      return isLetterIdentifier(el) ? text(el) : null;
     case 'msub': {
       const base = symbolKey(a);
       return base && b ? `${base}_${text(b)}` : null;
@@ -60,12 +68,40 @@ export interface SymbolNode {
   key: string;
 }
 
+/**
+ * Length of an italic word starting at children[i]: letters joined by invisible
+ * times (p⁢o⁢s). Returns 0 when the run is shorter than MIN_WORD_LETTERS, so
+ * genuine products like Q⁢K stay separate symbols.
+ */
+function wordRun(children: Element[], i: number): { word: string; length: number } {
+  let word = '';
+  let j = i;
+  while (children[j] && isLetterIdentifier(children[j]!)) {
+    word += text(children[j]!);
+    const next = children[j + 1];
+    if (next?.localName === 'mo' && text(next) === '') j += 2;
+    else {
+      j += 1;
+      break;
+    }
+  }
+  return [...word].length >= MIN_WORD_LETTERS ? { word, length: j - i } : { word: '', length: 0 };
+}
+
 /** Outermost symbols in a formula, in document order (d_k counts once, not as d and k). */
 export function symbolsIn(math: Element): SymbolNode[] {
   const out: SymbolNode[] = [];
   const walk = (el: Element): void => {
-    for (const child of Array.from(el.children)) {
+    const children = Array.from(el.children);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i]!;
       if (SKIP.has(child.localName)) continue;
+      const run = wordRun(children, i);
+      if (run.length) {
+        out.push({ el: child, key: run.word });
+        i += run.length - 1;
+        continue;
+      }
       const key = symbolKey(child);
       if (key) out.push({ el: child, key });
       else walk(child);

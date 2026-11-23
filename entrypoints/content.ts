@@ -1,13 +1,25 @@
-// Phase 1 target: arXiv HTML (LaTeXML output). Each formula is
-// <math class="ltx_Math" alttext="..."> with an application/x-tex annotation.
-// For now the script only reports what it found, proving injection works;
-// symbol extraction lands in v0.1.
+import { extractOccurrences } from '../adapters/arxiv-html';
+import { SymbolTable } from '../core/symbol-table';
+
+// Phase 1: arXiv HTML (LaTeXML). Builds the symbol table once the page is idle.
+// v0.1 reports it in the console; the hover popup that uses it lands in v0.2.
 export default defineContentScript({
   matches: ['https://arxiv.org/html/*', 'https://ar5iv.labs.arxiv.org/html/*'],
   runAt: 'document_idle',
   main() {
-    const formulas = document.querySelectorAll('math.ltx_Math').length;
-    const figures = document.querySelectorAll('figure.ltx_figure').length;
-    console.info(`[PaperPeek] ${formulas} formulas, ${figures} figures on this page`);
+    const start = performance.now();
+    const table = new SymbolTable(extractOccurrences(document));
+    const ms = performance.now() - start;
+
+    const defined = table.keys.flatMap((symbol) => {
+      const occ = table.occurrences(symbol).find((o) => o.definition);
+      return occ?.definition
+        ? [{ symbol, meaning: occ.definition.gloss, confidence: occ.definition.confidence, section: occ.sectionId }]
+        : [];
+    });
+    console.info(
+      `[PaperPeek] ${table.keys.length} symbols, ${defined.length} with definitions, built in ${ms.toFixed(0)} ms`,
+    );
+    console.table(defined);
   },
 });
