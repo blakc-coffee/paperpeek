@@ -1,6 +1,6 @@
 # Performance and memory
 
-Measured on 24 Nov 2026 with headless Chrome (1280×800) on live pages. A harness loads the page, forces garbage collection three times, and reads `JSHeapUsedSize`. It then runs the same setup as `ui/start.ts` and measures again: symbol table, term index and highlights, the full 435-term lookup matcher, the popup, and the hover listeners. The difference is what PaperPeek adds.
+Measured on 24 Nov 2026 with headless Chrome (1280×800) on live pages. A harness loads the page, forces garbage collection three times, and reads `JSHeapUsedSize`. It then runs the same setup as `ui/start.ts` and measures again: symbol table, term index and highlights, the full lookup matcher (435 terms at the time), the popup, and the hover listeners. The difference is what PaperPeek adds.
 
 | Page | Setup time | Symbols | Highlighted terms | JS heap added | DOM nodes added |
 |---|---:|---:|---:|---:|---:|

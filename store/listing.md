@@ -18,7 +18,7 @@ Reading ML papers means scrolling back to find where a symbol was introduced, or
 • AI/ML terms: key terms are softly underlined. Hover one for a plain explanation, its formula and a diagram.
 • Try it: softmax temperature, activation functions, attention weights, gradient descent and dropout each have a small interactive demo.
 • Figures and tables: hover "Figure 2" to preview it with its caption.
-• Look anything up: select a phrase to check the bundled glossary of 435 terms, with an optional Wikipedia lookup for anything else.
+• Look anything up: select a phrase to check the bundled glossary of 459 terms, with an optional Wikipedia lookup for anything else.
 
 Works on arXiv HTML papers out of the box. Turn it on for Wikipedia, blogs or any other site with one click on the toolbar button.
 
