@@ -1,17 +1,58 @@
-// arXiv HTML / ar5iv (LaTeXML output). Each formula is
-// <math class="ltx_Math" id="S3.p1.m2" alttext="d_{k}"> with Presentation MathML
-// inside; prose lives in .ltx_p paragraphs inside <section id="S3"> elements.
+// Symbol extraction from pages whose formulas are real Presentation MathML.
+// A SiteProfile says where formulas, prose and sections live on a given site.
 
 import { findDefinitions, placeholder, type SentenceMath } from '../core/definitions';
 import { symbolsIn } from '../core/symbol-key';
 import type { Occurrence } from '../core/symbol-table';
 
-const MATH = 'math.ltx_Math';
+export interface SiteProfile {
+  /** Rendered MathML formulas to index. */
+  math: string;
+  /** Prose blocks scanned for definitions and AI/ML terms. */
+  prose: string;
+  /** The formula's LaTeX source (shown in definition sentences, used for "N = 6" detection). */
+  tex: (math: Element) => string;
+  /** Subtrees that are not visible prose or formulas (e.g. accessibility copies of rendered maths). */
+  hidden?: string;
+}
+
+/** arXiv HTML / ar5iv (LaTeXML): <math class="ltx_Math" alttext="d_{k}">, .ltx_p paragraphs, <section id="S3">. */
+export const LATEXML: SiteProfile = {
+  math: 'math.ltx_Math',
+  prose: '.ltx_p, .ltx_caption',
+  tex: (math) => math.getAttribute('alttext') ?? math.textContent ?? '',
+};
+
+/** Wikipedia (Parsoid): <math class="mwe-math-element" data-mw='{"body":{"extsrc":"…"}}'>. */
+export const WIKIPEDIA: SiteProfile = {
+  math: 'math.mwe-math-element',
+  // Citation markers like "[8]" and inline styles are not prose.
+  hidden: 'sup.reference, .mw-ref, style',
+  prose: '.mw-parser-output :is(p, li, dd, figcaption)',
+  tex: (math) => {
+    try {
+      return (JSON.parse(math.getAttribute('data-mw') ?? '{}') as { body?: { extsrc?: string } }).body?.extsrc ?? '';
+    } catch {
+      return math.textContent ?? '';
+    }
+  },
+};
+
+/**
+ * Any other page: visible native MathML only. KaTeX and MathJax keep their MathML
+ * in visually hidden copies, so their formulas get no symbol popups (terms still work).
+ */
+export const GENERIC: SiteProfile = {
+  math: 'math',
+  hidden: '.katex-mathml, mjx-assistive-mml, .MJX_Assistive_MathML, script, style',
+  prose: ':is(article, main, [role=main], .markdown-body, body) :is(p, li, dd, figcaption, blockquote)',
+  tex: (math) => math.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? math.getAttribute('alttext') ?? '',
+};
+
 const SKIP_IN_PROSE = new Set(['annotation', 'annotation-xml']);
 // Sentence ends that are really abbreviations: "et al.", "e.g.", "Fig. 2".
 const ABBREVIATION = /\b(?:e\.g|i\.e|et al|cf|vs|resp|approx|Fig|Figs|Eq|Eqs|Sec|Tab|No)\.$/i;
 
-const tex = (math: Element): string => math.getAttribute('alttext') ?? math.textContent ?? '';
 // "N=6", "h = 8", "d_{\text{model}}=512": the formula gives the symbol a value.
 const ASSIGNMENT = /^[^=]+=\s*[\d.,]+\s*$/;
 
@@ -49,7 +90,7 @@ interface Paragraph {
 }
 
 /** Flatten a paragraph to text with §i§ placeholders for each inline formula. */
-function readParagraph(p: Element): Paragraph {
+function readParagraph(p: Element, { math: mathSelector, hidden }: SiteProfile): Paragraph {
   const maths: Element[] = [];
   let text = '';
   const walk = (node: Node): void => {
@@ -57,22 +98,25 @@ function readParagraph(p: Element): Paragraph {
       if (child.nodeType === 3) text += child.textContent ?? '';
       else if (child.nodeType === 1) {
         const el = child as Element;
-        if (el.matches(MATH)) {
+        if (el.matches(mathSelector)) {
           text += placeholder(maths.length);
           maths.push(el);
-        } else if (!SKIP_IN_PROSE.has(el.localName)) walk(el);
+        } else if (!SKIP_IN_PROSE.has(el.localName) && !(hidden && el.matches(hidden))) walk(el);
       }
     }
   };
   walk(p);
-  return { text: text.replace(/\s+/g, ' '), maths };
+  // Wikipedia wraps inline maths in U+2060 word joiners; they must not become "words".
+  return { text: text.replace(/[​-‍⁠﻿]/g, '').replace(/\s+/g, ' '), maths };
 }
 
-export function extractOccurrences(doc: Document): Occurrence[] {
+export function extractOccurrences(doc: Document, profile: SiteProfile = LATEXML): Occurrence[] {
+  const { tex } = profile;
   const occurrences: Occurrence[] = [];
   const firstOfMath = new Map<Element, Occurrence>();
 
-  Array.from(doc.querySelectorAll(MATH)).forEach((math, mathIndex) => {
+  const visible = (el: Element): boolean => !profile.hidden || !el.closest(profile.hidden);
+  Array.from(doc.querySelectorAll(profile.math)).filter(visible).forEach((math, mathIndex) => {
     const mathId = math.id || `math-${mathIndex}`;
     const sectionId = math.closest('section')?.id ?? null;
     for (const { el, key } of symbolsIn(math)) {
@@ -82,8 +126,10 @@ export function extractOccurrences(doc: Document): Occurrence[] {
     }
   });
 
-  for (const p of Array.from(doc.querySelectorAll('.ltx_p'))) {
-    const { text, maths } = readParagraph(p);
+  // Nested matches (an <li> inside a <blockquote>) would read the same text twice.
+  const blocks = Array.from(doc.querySelectorAll(profile.prose)).filter((b) => !b.parentElement?.closest(profile.prose));
+  for (const p of blocks) {
+    const { text, maths } = readParagraph(p, profile);
     if (!maths.length) continue;
     const sentenceMaths: SentenceMath[] = maths.map((m) => {
       const first = firstOfMath.get(m);

@@ -5,9 +5,13 @@ export default defineConfig({
   manifestVersion: 3,
   manifest: {
     name: 'PaperPeek',
-    // storage: the Wikipedia setting and its 7-day lookup cache. No host permissions:
-    // Wikipedia is reached with plain CORS fetches, only when the reader allows it.
-    permissions: ['storage'],
+    // storage: the Wikipedia setting and its 7-day lookup cache (Wikipedia is reached
+    // with plain CORS fetches, only when the reader allows it).
+    // scripting + activeTab + optional hosts: the reader enables other sites one at a
+    // time from the toolbar button; nothing runs outside arXiv until they do.
+    permissions: ['storage', 'scripting', 'activeTab'],
+    optional_host_permissions: ['https://*/*', 'http://*/*'],
+    action: { default_title: 'PaperPeek' },
     description:
       'Hover any symbol, AI/ML term or figure in a paper to see its definition, diagrams, figures and demos.',
     browser_specific_settings: {

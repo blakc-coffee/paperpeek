@@ -2,7 +2,7 @@
 
 **Hover any symbol, AI/ML term or figure in a paper and see what it means, right where you are reading.**
 
-![Hovering d_k in Attention Is All You Need shows "queries and keys of dimension", its section, the defining sentence, and a Jump to definition button](docs/images/symbol.png)
+![Hovering d_k in Attention Is All You Need shows "queries and keys of dimension", its section, the defining sentence, and a Jump to definition button](docs/images/real-popup-arxiv.png)
 
 ## Features
 
@@ -14,14 +14,14 @@
 
 | | |
 |---|---|
-| ![Term popup for multi-head attention with explanation, formula and diagram](docs/images/term.png) | ![Softmax demo with a temperature slider](docs/images/demo-softmax.png) |
-| ![Figure 2 preview with both attention diagrams and the caption](docs/images/figure.png) | ![Selecting "label smoothing" shows the closest Wikipedia article](docs/images/wikipedia.png) |
+| ![Term popup for multi-head attention with explanation, formula and diagram](docs/images/real-term-arxiv.jpg) | ![Softmax demo with a temperature slider](docs/images/real-demo-softmax.jpg) |
+| ![Figure 2 preview with both attention diagrams and the caption](docs/images/real-figure-arxiv.jpg) | ![Selecting "label smoothing" shows the closest Wikipedia article](docs/images/real-wikipedia-arxiv.jpg) |
 
 ## Where it works
 
-PaperPeek works on **arXiv HTML** papers (`arxiv.org/html/…`) and **ar5iv**, with symbols, terms, figures and demos.
-
-Support for Wikipedia, blogs and other sites you choose to enable is coming next.
+- **arXiv HTML** (`arxiv.org/html/…`) and **ar5iv**. These work out of the box, with symbols, terms, figures and demos.
+- **Any other site you enable** from the toolbar button: Wikipedia, blogs, GitHub, and others. On these sites you get terms, demos and lookups. You also get symbols wherever formulas are native MathML, as they are on Wikipedia.
+- **arXiv abstract pages, Hugging Face Papers and alphaXiv.** These show a link to open the paper's arXiv HTML version.
 
 ## Install from source
 
@@ -40,7 +40,7 @@ Then load it in Chrome:
 ## Privacy
 
 - No account, telemetry, server or AI model; everything runs in your browser.
-- The extension runs only on arXiv HTML pages.
+- The extension runs only on arXiv HTML and the sites you enable.
 - The only network request is the Wikipedia lookup. It is off unless you allow it, and it sends just the selected term.
 
 ## Credits and license

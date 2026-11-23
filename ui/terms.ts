@@ -5,7 +5,7 @@
 import type { GlossaryEntry, TermMatch } from '../core/glossary';
 
 /** Text inside these is never a term: formulas, links, citations, footnotes. */
-const SKIP = 'math, a, .ltx_cite, .ltx_note, .ltx_title';
+const SKIP = 'math, a, code, pre, kbd, nav, header, footer, .ltx_cite, .ltx_note, .ltx_title, .mw-editsection';
 const HIGHLIGHT = 'paperpeek-term';
 
 export interface TermHit {

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SymbolTable } from '../core/symbol-table';
-import { extractOccurrences, splitSentences } from './arxiv-html';
+import { extractOccurrences, GENERIC, splitSentences, WIKIPEDIA } from './arxiv-html';
 
 // Minimal LaTeXML-shaped page (same markup as arxiv.org/html/1706.03762).
 const m = (id: string, tex: string, mathml: string) =>
@@ -82,5 +82,31 @@ describe('arXiv HTML adapter', () => {
 
   it('falls back to the first use when a symbol is never defined', () => {
     expect(table.lookup('Q', 999)).toMatchObject({ kind: 'first-use', occurrence: { mathId: 'S5.p1.m2' } });
+  });
+});
+
+describe('site profiles', () => {
+  it('reads Wikipedia MathML, its LaTeX from data-mw, and definitions from plain paragraphs', () => {
+    document.body.innerHTML = `
+      <div class="mw-parser-output"><section id="mwIw"><div class="mw-heading"><h2>Definition</h2></div>
+        <p>The function takes a vector <math class="mwe-math-element" id="m1" data-mw='{"body":{"extsrc":"\\mathbf{z}"}}'><mi>z</mi></math>,
+        where <math class="mwe-math-element" id="m2" data-mw='{"body":{"extsrc":"K"}}'><mi>K</mi></math> is the number of classes.</p>
+      </section></div>`;
+    const occ = extractOccurrences(document, WIKIPEDIA);
+    expect(occ.map((o) => [o.key, o.sectionId])).toEqual([
+      ['z', 'mwIw'],
+      ['K', 'mwIw'],
+    ]);
+    expect(occ[1]!.definition?.gloss).toBe('number of classes');
+    expect(occ[1]!.definition?.sentence).toContain('$K$');
+  });
+
+  it('ignores KaTeX and MathJax hidden MathML on generic pages', () => {
+    document.body.innerHTML = `
+      <article><p>Let <span class="katex"><span class="katex-mathml"><math><mi>x</mi></math></span></span> be hidden,
+        and let <math id="v"><mi>y</mi></math> denote the visible one.</p></article>`;
+    const occ = extractOccurrences(document, GENERIC);
+    expect(occ.map((o) => o.key)).toEqual(['y']);
+    expect(occ[0]!.definition?.gloss).toBe('visible one');
   });
 });
