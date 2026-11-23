@@ -1,7 +1,8 @@
-// One delegated listener set for the whole page: no per-symbol handlers, so
-// cost stays flat however many formulas a paper has.
+// One delegated listener set for the whole page: no per-symbol or per-link
+// handlers, so cost stays flat however many formulas and references a paper has.
 
 import type { Occurrence, SymbolTable } from '../core/symbol-table';
+import { renderCard, renderFigureCard } from './card';
 import type { Popup } from './popup';
 
 const OPEN_DELAY_MS = 120;
@@ -17,6 +18,37 @@ export function occurrenceAt(table: SymbolTable, target: EventTarget | null): Oc
     node = node.parentElement;
   }
   return undefined;
+}
+
+/** A cross-reference link under `target` that points at a figure or table on this page. */
+export function figureRefAt(doc: Document, target: EventTarget | null): { ref: Element; figure: Element } | undefined {
+  const ref = target instanceof Element ? target.closest('a.ltx_ref[href^="#"]') : null;
+  if (!ref) return undefined;
+  const figure = doc.getElementById(ref.getAttribute('href')?.slice(1) ?? '');
+  if (!figure?.matches('figure.ltx_figure, figure.ltx_table') || figure.contains(ref)) return undefined;
+  return { ref, figure };
+}
+
+/** What a hover over `target` should show: the anchor element and a card builder. */
+function hitAt(
+  doc: Document,
+  table: SymbolTable,
+  popup: Popup,
+  target: EventTarget | null,
+): { anchor: Element; card: () => HTMLElement | undefined } | undefined {
+  const jump = (to: Element): void => popup.jumpTo(to);
+  const occ = occurrenceAt(table, target);
+  if (occ) {
+    return {
+      anchor: occ.el,
+      card: () => {
+        const result = table.lookup(occ.key, occ.order);
+        return result && renderCard(doc, occ.el, result, jump);
+      },
+    };
+  }
+  const fig = figureRefAt(doc, target);
+  return fig && { anchor: fig.ref, card: () => renderFigureCard(doc, fig.ref, fig.figure, jump) };
 }
 
 export function attachHover(doc: Document, table: SymbolTable, popup: Popup): () => void {
@@ -35,14 +67,14 @@ export function attachHover(doc: Document, table: SymbolTable, popup: Popup): ()
       window.clearTimeout(closeTimer);
       return;
     }
-    const occ = occurrenceAt(table, e.target);
-    if (!occ) return;
+    const hit = hitAt(doc, table, popup, e.target);
+    if (!hit) return;
     window.clearTimeout(closeTimer);
-    if (popup.anchor === occ.el) return;
+    if (popup.anchor === hit.anchor) return;
     window.clearTimeout(openTimer);
     openTimer = window.setTimeout(() => {
-      const result = table.lookup(occ.key, occ.order);
-      if (result) popup.show(occ.el, result);
+      const card = hit.card();
+      if (card) popup.show(hit.anchor, card);
     }, OPEN_DELAY_MS);
   };
 
@@ -50,7 +82,7 @@ export function attachHover(doc: Document, table: SymbolTable, popup: Popup): ()
     const to = e.relatedTarget;
     if (to instanceof Node && (popup.host.contains(to) || to === popup.host)) return;
     if (popup.anchor && to instanceof Node && popup.anchor.contains(to)) return;
-    if (inPopup(e) || occurrenceAt(table, e.target)) scheduleClose();
+    if (inPopup(e) || hitAt(doc, table, popup, e.target)) scheduleClose();
   };
 
   const onKey = (e: KeyboardEvent): void => {

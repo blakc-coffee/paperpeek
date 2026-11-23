@@ -1,8 +1,6 @@
 // One popup per tab: a closed shadow root (page CSS can't reach it, ours can't
 // leak) holding a native popover in the top layer (no z-index fights).
 
-import type { LookupResult } from '../core/symbol-table';
-import { renderCard } from './card';
 import { place } from './place';
 
 const ENTER_MS = 150;
@@ -69,6 +67,21 @@ const STYLE = `
 .jump:active { transform: scale(0.98); }
 .jump:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .note { color: var(--muted); font-size: 12px; line-height: 16px; }
+.is-figure { width: min(440px, calc(100vw - 32px)); max-width: none; }
+.media { display: flex; gap: 8px; justify-content: center; align-items: flex-end; }
+.media img {
+  min-width: 0; max-width: 100%; width: auto; height: auto; max-height: 240px;
+  border-radius: 6px; background: #ffffff; object-fit: contain;
+}
+.media .table {
+  display: block; max-height: 240px; overflow: auto; border-collapse: collapse;
+  font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums;
+}
+.media .table td, .media .table th { padding: 2px 6px; white-space: nowrap; }
+.caption {
+  margin-top: 8px; color: var(--fg); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
 `;
 
 export class Popup {
@@ -93,16 +106,15 @@ export class Popup {
     return this.anchor !== null;
   }
 
-  show(hovered: Element, result: LookupResult): void {
+  show(hovered: Element, card: HTMLElement): void {
     window.clearTimeout(this.closeTimer);
     this.anchor = hovered;
     this.panel.classList.remove('open', 'closing', 'theme-dark', 'theme-light');
     const theme = pageTheme(this.doc);
     if (theme) this.panel.classList.add(theme);
-    this.panel.replaceChildren(renderCard(this.doc, hovered, result, (target) => this.jumpTo(target)));
+    this.panel.replaceChildren(card);
     if (!this.panel.matches(':popover-open')) this.panel.showPopover();
 
-    const card = this.panel.firstElementChild as HTMLElement;
     const { left, top, side } = place(
       hovered.getBoundingClientRect(),
       { width: card.offsetWidth, height: card.offsetHeight },
@@ -127,7 +139,7 @@ export class Popup {
     }, EXIT_MS);
   }
 
-  private jumpTo(target: Element): void {
+  jumpTo(target: Element): void {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const formula = target.closest('math') ?? target;
     this.hide();

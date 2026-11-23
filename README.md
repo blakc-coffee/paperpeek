@@ -14,6 +14,10 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ![PaperPeek popup on arxiv.org: hovering d_k shows "queries and keys of dimension", the §3.2.1 badge, the defining sentence with real MathML, and a Jump to definition button](docs/images/real-popup-arxiv.png)
 
+**Real screenshot (v0.3)** — hovering the "Figure 2" link in §3.2.1 previews the figure and its caption without scrolling away:
+
+![PaperPeek figure preview on arxiv.org: hovering the Figure 2 reference shows both attention diagrams, the caption, and a Jump to Figure 2 button](docs/images/real-figure-arxiv.jpg)
+
 > The images below are design mockups of upcoming features (term popups arrive in v0.4).
 
 **Hover a symbol** → its definition, quoted from the paper, with a jump link:
@@ -35,7 +39,8 @@ What PaperPeek shows when you hover these on [arxiv.org/html/1706.03762](https:/
 | `h` | Symbol | "number of parallel attention heads" · the value used in the paper (8) |
 | "multi-head attention" | AI/ML term | short explanation · formula · diagram of heads being concatenated |
 | "softmax" | AI/ML term | explanation · formula · temperature slider demo |
-| "Figure 2" | Figure | the figure image and its caption, inline |
+| "Figure 2" link | Figure | both diagram panels and the caption, inline · jump link |
+| "Table 1" link | Table | the table (scrollable, with its math) and caption · jump link |
 | "label smoothing" (not in the bundled glossary) | AI/ML term | Wikipedia summary + thumbnail, with CC BY-SA credit (opt-in) |
 
 ## How it works
@@ -69,7 +74,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2). AI/ML term popups arrive in v0.4. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), and hovering a Figure or Table reference previews it (v0.3). AI/ML term popups arrive in v0.4. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -78,14 +83,14 @@ pnpm install
 pnpm build
 ```
 
-Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and hover any symbol in a formula (e.g. `d_k`, `h`, `N`).
+Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and hover any symbol in a formula (e.g. `d_k`, `h`, `N`) or a figure/table reference (e.g. "Figure 2" in §3.2.1).
 
 ## Roadmap
 
 - [x] v0.0 Repo foundation (docs, WXT scaffold, CI, release automation)
 - [x] v0.1 arXiv symbol table + definition detection
 - [x] v0.2 Hover popup
-- [ ] v0.3 Figure previews
+- [x] v0.3 Figure previews
 - [ ] v0.4 ML term glossary + highlighting
 - [ ] v0.5 Interactive demos
 - [ ] v0.6 Wikipedia fallback (opt-in)
