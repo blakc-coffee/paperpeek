@@ -56,7 +56,7 @@ const check = (ok, label) => {
 };
 
 try {
-  await send('Extensions.loadUnpacked', { path: extension });
+  const { id: extensionId } = await send('Extensions.loadUnpacked', { path: extension });
   const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
   await send('Runtime.enable', {}, sessionId);
@@ -84,6 +84,26 @@ try {
   const { nodes } = await send('Accessibility.getFullAXTree', {}, sessionId);
   const dialog = nodes.find((n) => n.role?.value === 'dialog' && /^Definition: /.test(n.name?.value ?? ''));
   check(Boolean(dialog), `hovering d_k opens its popup (${dialog?.name?.value ?? 'none'})`);
+
+  // The abstract page offers the HTML version through the resolver chip.
+  await send('Page.navigate', { url: 'https://arxiv.org/abs/1706.03762' }, sessionId);
+  await sleep(6000);
+  const { nodes: absNodes } = await send('Accessibility.getFullAXTree', {}, sessionId);
+  const chip = absNodes.find((n) => n.role?.value === 'link' && /Read with PaperPeek/.test(n.name?.value ?? ''));
+  check(Boolean(chip), 'arXiv abstract page shows the "Read with PaperPeek" link');
+
+  // The options page runs against the real extension APIs: setting loaded, empty site list shown.
+  if (extensionId) {
+    await send('Page.navigate', { url: `chrome-extension://${extensionId}/options.html` }, sessionId);
+    await sleep(1500);
+    const { result: options } = await send('Runtime.evaluate', {
+      expression: `({ checked: document.querySelector('input[name="wikipedia"]:checked')?.value, emptyShown: !document.getElementById('no-sites')?.hidden })`,
+      returnByValue: true,
+    }, sessionId);
+    check(options.value.checked === 'ask' && options.value.emptyShown, `options page: Wikipedia "ask" selected, empty site list shown`);
+  } else {
+    check(false, 'found the extension id for the options page');
+  }
 } catch (error) {
   failures.push(String(error));
   console.error(error);
