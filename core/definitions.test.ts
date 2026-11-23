@@ -135,3 +135,11 @@ describe('respectively', () => {
     expect(g.m0).toBe(g.m1);
   });
 });
+
+describe('quantifier and preposition glosses', () => {
+  const one = (text: string) => findDefinitions({ text, maths: [{ id: 'm0', keys: ['s0'] }] })[0]?.gloss;
+  it('drops single quantifier words and leading prepositions', () => {
+    expect(one('This holds for any §0§.')).toBeUndefined();
+    expect(one('Values are stored at position §0§.')).toBe('position');
+  });
+});

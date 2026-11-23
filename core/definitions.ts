@@ -71,7 +71,9 @@ const COUNT = new RegExp(`(?<=\\b(?:of|by|with|over|for|uses?|has|have|contains?
 // Gloss precedes the symbol: "we denote the number of layers by N".
 const BEFORE = new RegExp(`\\bdenoted?\\s+(?:the\\s+)?([^,;:.§]+?)\\s+(?:by|as)\\s+${M}`, 'gi');
 
-const LEADING_FILLER = new Set(['the', 'a', 'an', 'of', 'and', 'or', 'with', 'for', 'to', 'by', 'in', 'on']);
+const LEADING_FILLER = new Set(['the', 'a', 'an', 'of', 'and', 'or', 'with', 'for', 'to', 'by', 'in', 'on', 'at', 'from', 'over', 'into']);
+// Quantifiers and pronoun-like words that never name what a symbol is on their own ("x_i for any i").
+const NOT_A_GLOSS = new Set(['any', 'all', 'both', 'each', 'every', 'either', 'some', 'same', 'other', 'one', 'it', 'them']);
 const TRAILING_CUT = /\s+(?:which|that|where|while|whose|and\s+is|and\s+are)\b.*$/i;
 // Words that end a noun phrase when scanning backwards from a symbol.
 const STOP = new Set([
@@ -96,7 +98,7 @@ function clean(raw: string): string {
   while (words.length && LEADING_FILLER.has((words[0] ?? '').toLowerCase())) words.shift();
   while (words.length && DANGLING.has((words.at(-1) ?? '').toLowerCase())) words.pop();
   // A lone adverb or gerund ("simply", "Writing") is never a definition.
-  if (words.length === 1 && /(?:ly|ing)$/i.test(words[0] ?? '')) return '';
+  if (words.length === 1 && (/(?:ly|ing)$/i.test(words[0] ?? '') || NOT_A_GLOSS.has((words[0] ?? '').toLowerCase()))) return '';
   return words.slice(0, MAX_GLOSS_WORDS).join(' ');
 }
 
@@ -116,7 +118,7 @@ function nounPhraseBefore(text: string, end: number): string {
     phrase.unshift(w);
   }
   const last = phrase.at(-1);
-  if (!last || DANGLING.has(last.toLowerCase())) return '';
+  if (!last || DANGLING.has(last.toLowerCase()) || NOT_A_GLOSS.has(last.toLowerCase())) return '';
   const det = phrase.findLastIndex((w) => DETERMINER.has(w.toLowerCase()));
   return clean(phrase.slice(det + 1).join(' '));
 }
