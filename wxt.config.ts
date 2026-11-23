@@ -5,6 +5,7 @@ export default defineConfig({
   manifestVersion: 3,
   manifest: {
     name: 'PaperPeek',
+    homepage_url: 'https://blakc-coffee.github.io/paperpeek/',
     // storage: the Wikipedia setting and its 7-day lookup cache (Wikipedia is reached
     // with plain CORS fetches, only when the reader allows it).
     // scripting + activeTab + optional hosts: the reader enables other sites one at a
