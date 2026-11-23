@@ -4,7 +4,8 @@ import { SymbolTable, type Occurrence } from '../core/symbol-table';
 import { compileMatcher } from '../core/glossary';
 import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
 import { DEMOS } from './demos';
-import { glossaryEntryFor, lookupText } from './lookup';
+import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
+import type { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
 import { figureRefAt, occurrenceAt } from './hover';
@@ -319,5 +320,36 @@ describe('renderWikiCard', () => {
     const retry = vi.fn();
     (renderWikiCard(document, { s: 'error', term: 't', retry }).querySelector('button') as HTMLButtonElement).click();
     expect(retry).toHaveBeenCalledOnce();
+  });
+});
+
+describe('keyboard selection lookup', () => {
+  it('looks up a Shift+Arrow selection once the reader pauses', () => {
+    vi.useFakeTimers();
+    try {
+      document.body.innerHTML = '<p>We apply <b>dropout</b> here.</p>';
+      const show = vi.fn();
+      const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null });
+      const range = document.createRange();
+      range.selectNodeContents(document.querySelector('b')!);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', shiftKey: true }));
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', shiftKey: true }));
+      vi.advanceTimersByTime(399);
+      expect(show).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(show).toHaveBeenCalledTimes(1);
+      expect((show.mock.calls[0]![2] as HTMLElement).querySelector('.term')?.textContent).toBe('dropout');
+
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
+      vi.advanceTimersByTime(1000);
+      expect(show).toHaveBeenCalledTimes(1);
+      detach();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
