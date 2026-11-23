@@ -53,3 +53,9 @@ describe('bundled glossary', () => {
     expect(glossary.license).toBe('CC-BY-4.0');
   });
 });
+
+describe('formulas', () => {
+  it('use Unicode, not LaTeX braces', () => {
+    for (const e of entries) if (e.formula) expect(e.formula, e.id).not.toMatch(/[\^_]\{|\[a-z]/);
+  });
+});

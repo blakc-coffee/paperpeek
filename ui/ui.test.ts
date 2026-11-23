@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SymbolTable, type Occurrence } from '../core/symbol-table';
 import { compileMatcher } from '../core/glossary';
 import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
+import { DEMOS } from './demos';
 import { TermIndex } from './terms';
 import { figureRefAt, occurrenceAt } from './hover';
 import { place } from './place';
@@ -196,5 +197,64 @@ describe('renderTermCard', () => {
   it('omits formula and diagram when the entry has none', () => {
     const card = renderTermCard(document, GLOSSARY[1]!);
     expect(card.querySelector('.formula, .diagram')).toBeNull();
+  });
+});
+
+describe('demos', () => {
+  const slide = (root: HTMLElement, value: string) => {
+    const input = root.querySelector('input[type=range]') as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    return root.querySelector('output')?.textContent;
+  };
+
+  it('builds every demo with a labelled slider and an SVG', () => {
+    for (const [name, build] of Object.entries(DEMOS)) {
+      const root = build(document);
+      expect(root.querySelector('svg[role=img]'), name).not.toBeNull();
+      expect(root.querySelector('label.control input[type=range]'), name).not.toBeNull();
+      expect(root.querySelector('output')?.textContent, name).not.toBe('');
+    }
+  });
+
+  it('softmax bars follow the temperature', () => {
+    const root = DEMOS.softmax!(document);
+    const top = () => root.querySelector('svg text:not([y="116"])')?.textContent;
+    expect(slide(root, '0.1')).toBe('T = 0.1');
+    expect(top()).toBe('1.00');
+    slide(root, '5');
+    expect(Number(top())).toBeLessThan(0.4);
+  });
+
+  it('gradient descent reports divergence above η = 1', () => {
+    const root = DEMOS['gradient-descent']!(document);
+    slide(root, '1.1');
+    expect(root.textContent).toContain('diverges');
+    slide(root, '0.5');
+    expect(root.textContent).toContain('x = 0.000');
+  });
+
+  it('dropout resample redraws the mask', () => {
+    const root = DEMOS.dropout!(document);
+    const mask = () => Array.from(root.querySelectorAll('circle')).map((c) => c.getAttribute('class')).join();
+    const before = mask();
+    (root.querySelector('button.chip') as HTMLButtonElement).click();
+    expect(mask()).not.toBe(before);
+    slide(root, '0');
+    expect(root.querySelectorAll('circle.d-off')).toHaveLength(0);
+  });
+
+  it('term card swaps the diagram for the demo and back', () => {
+    const onResize = vi.fn();
+    const card = renderTermCard(document, { ...GLOSSARY[0]!, demo: 'attention' }, onResize);
+    const toggle = Array.from(card.querySelectorAll('button')).find((b) => b.textContent === '▶ Try it')!;
+    toggle.click();
+    expect(card.querySelector('.demo')).not.toBeNull();
+    expect(card.querySelector('.diagram')).toBeNull();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    toggle.click();
+    expect(card.querySelector('.demo')).toBeNull();
+    expect(card.querySelector('.diagram svg')).not.toBeNull();
+    expect(onResize).toHaveBeenCalledTimes(2);
   });
 });

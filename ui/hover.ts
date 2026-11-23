@@ -60,7 +60,7 @@ function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, targ
     return { anchor: fig.ref, rect: () => fig.ref.getBoundingClientRect(), card: () => renderFigureCard(doc, fig.ref, fig.figure, jump) };
   }
   const term = terms.at(doc, x, y);
-  return term && { anchor: term.hit, rect: () => term.rect, card: () => renderTermCard(doc, term.hit.entry) };
+  return term && { anchor: term.hit, rect: () => term.rect, card: () => renderTermCard(doc, term.hit.entry, () => popup.relayout()) };
 }
 
 export function attachHover(doc: Document, sources: HoverSources, popup: Popup): () => void {

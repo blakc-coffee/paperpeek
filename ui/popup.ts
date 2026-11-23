@@ -96,6 +96,23 @@ const STYLE = `
 .d-curve { stroke: var(--accent); }
 .d-curve2 { stroke: #f59e0b; }
 .d-curve3 { stroke: #10b981; }
+.d-dot.d-curve { fill: var(--accent); }
+.d-dot.d-curve2 { fill: #f59e0b; }
+.d-dot.d-curve3 { fill: #10b981; }
+.d-thin { fill: none; stroke-dasharray: 3 3; }
+.d-small { font-size: 9px; }
+.demo { margin-top: 8px; }
+.demo svg { display: block; width: 100%; height: auto; }
+.control { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.control input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.control output { min-width: 56px; text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+.chip {
+  all: unset; cursor: pointer; margin-top: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; line-height: 20px;
+  background: var(--accent-bg); color: var(--accent); font-weight: 500;
+  transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.chip:active { transform: scale(0.98); }
+.chip:focus-visible, .control input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .caption {
   margin-top: 8px; color: var(--fg); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
@@ -106,6 +123,7 @@ export class Popup {
   readonly host: HTMLElement;
   private readonly panel: HTMLElement;
   private closeTimer = 0;
+  private anchorRect: DOMRectReadOnly | null = null;
   /** Identity of what the popup is showing (a symbol element or a term hit). */
   anchor: object | null = null;
 
@@ -128,14 +146,23 @@ export class Popup {
   show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement): void {
     window.clearTimeout(this.closeTimer);
     this.anchor = anchor;
+    this.anchorRect = anchorRect;
     this.panel.classList.remove('open', 'closing', 'theme-dark', 'theme-light');
     const theme = pageTheme(this.doc);
     if (theme) this.panel.classList.add(theme);
     this.panel.replaceChildren(card);
     if (!this.panel.matches(':popover-open')) this.panel.showPopover();
+    this.relayout();
+    // Next frame so the enter transition runs from the initial state.
+    requestAnimationFrame(() => this.panel.classList.add('open'));
+  }
 
+  /** Re-place the open card against its anchor, e.g. after a demo changed its height. */
+  relayout(): void {
+    const card = this.panel.firstElementChild as HTMLElement | null;
+    if (!card || !this.anchorRect) return;
     const { left, top, side } = place(
-      anchorRect,
+      this.anchorRect,
       { width: card.offsetWidth, height: card.offsetHeight },
       { width: window.innerWidth, height: window.innerHeight },
     );
@@ -143,8 +170,6 @@ export class Popup {
     this.panel.style.top = `${top}px`;
     this.panel.classList.remove('above', 'below');
     this.panel.classList.add(side);
-    // Next frame so the enter transition runs from the initial state.
-    requestAnimationFrame(() => this.panel.classList.add('open'));
   }
 
   hide(): void {
