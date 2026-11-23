@@ -1,0 +1,94 @@
+// @vitest-environment happy-dom
+import { describe, expect, it, vi } from 'vitest';
+import { SymbolTable, type Occurrence } from '../core/symbol-table';
+import { renderCard, sectionLabel } from './card';
+import { occurrenceAt } from './hover';
+import { place } from './place';
+
+const VIEW = { width: 1280, height: 800 };
+const SIZE = { width: 360, height: 140 };
+
+describe('place', () => {
+  it('opens below the anchor, centred', () => {
+    expect(place({ left: 600, top: 100, right: 620, bottom: 120 }, SIZE, VIEW)).toEqual({
+      left: 430,
+      top: 128,
+      side: 'below',
+    });
+  });
+
+  it('flips above when there is no room below', () => {
+    expect(place({ left: 600, top: 740, right: 620, bottom: 760 }, SIZE, VIEW)).toMatchObject({
+      top: 740 - 8 - 140,
+      side: 'above',
+    });
+  });
+
+  it('stays 16px inside the viewport edges', () => {
+    expect(place({ left: 2, top: 100, right: 10, bottom: 120 }, SIZE, VIEW).left).toBe(16);
+    expect(place({ left: 1270, top: 100, right: 1278, bottom: 120 }, SIZE, VIEW).left).toBe(1280 - 360 - 16);
+  });
+});
+
+function fixture() {
+  document.body.innerHTML = `
+    <section id="S3"><h3 class="ltx_title">3.2.1 Scaled Dot-Product Attention</h3>
+      <math id="m1"><msub onclick="alert(1)"><mi>d</mi><mi>k</mi></msub></math>
+      <math id="m2"><mi>Q</mi></math>
+    </section>`;
+  const [dk, q] = [document.querySelector('msub')!, document.querySelector('#m2 mi')!];
+  const defined: Occurrence = {
+    key: 'd_k', order: 0, mathId: 'm1', sectionId: 'S3', el: dk,
+    definition: { gloss: 'dimension of the keys', confidence: 0.9, sentence: '', parts: ['keys of dimension ', document.querySelector('#m1')!, '.'] },
+  };
+  const undefinedQ: Occurrence = { key: 'Q', order: 1, mathId: 'm2', sectionId: 'S3', el: q };
+  return { dk, q, defined, undefinedQ };
+}
+
+describe('renderCard', () => {
+  it('shows gloss, section, quoted sentence with cloned MathML, and jumps', () => {
+    const { dk, defined } = fixture();
+    const onJump = vi.fn();
+    const card = renderCard(document, dk, { occurrence: defined, kind: 'preceding' }, onJump);
+    expect(card.querySelector('.gloss')?.textContent).toBe('dimension of the keys');
+    expect(card.querySelector('.badge')?.textContent).toBe('§ 3.2.1 Scaled Dot-Product Attention');
+    expect(card.querySelector('.quote')?.textContent).toContain('keys of dimension');
+    expect(card.querySelectorAll('.quote math')).toHaveLength(1);
+    (card.querySelector('.jump') as HTMLButtonElement).click();
+    expect(onJump).toHaveBeenCalledWith(dk);
+  });
+
+  it('strips event handlers and ids from cloned page markup', () => {
+    const { dk, defined } = fixture();
+    const card = renderCard(document, dk, { occurrence: defined, kind: 'preceding' }, () => {});
+    expect(card.querySelector('[onclick]')).toBeNull();
+    expect(card.querySelector('[id]')).toBeNull();
+  });
+
+  it('renders the partial state when a symbol is never defined', () => {
+    const { q, undefinedQ } = fixture();
+    const card = renderCard(document, q, { occurrence: undefinedQ, kind: 'first-use' }, () => {});
+    expect(card.classList.contains('is-partial')).toBe(true);
+    expect(card.querySelector('.gloss')?.textContent).toBe('Not defined in the text');
+    expect(card.querySelector('.quote')).toBeNull();
+    expect(card.querySelector('.jump')?.textContent).toBe('Jump to first use');
+  });
+});
+
+describe('sectionLabel', () => {
+  it('truncates long headings', () => {
+    document.body.innerHTML = `<section id="S9"><h2 class="ltx_title">9 A Very Long Section Title About Everything</h2></section>`;
+    expect(sectionLabel(document, 'S9')).toBe('9 A Very Long Section Title About Every…');
+    expect(sectionLabel(document, null)).toBe('');
+  });
+});
+
+describe('occurrenceAt', () => {
+  it('climbs from a hovered glyph to its symbol, but not past the formula', () => {
+    const { dk, defined, q } = fixture();
+    const table = new SymbolTable([defined]);
+    expect(occurrenceAt(table, dk.querySelector('mi'))).toBe(defined);
+    expect(occurrenceAt(table, q)).toBeUndefined();
+    expect(occurrenceAt(table, document.body)).toBeUndefined();
+  });
+});

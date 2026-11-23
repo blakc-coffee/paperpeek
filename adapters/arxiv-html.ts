@@ -32,6 +32,17 @@ export function splitSentences(text: string): string[] {
   return out.map((s) => s.trim()).filter(Boolean);
 }
 
+/** "a §0§ b" → ["a ", <math>, " b"] using the paragraph's formulas. */
+function toParts(sentence: string, maths: Element[]): Array<string | Element> {
+  return sentence
+    .split(/(§\d+§)/)
+    .filter(Boolean)
+    .map((piece) => {
+      const m = /^§(\d+)§$/.exec(piece);
+      return m ? (maths[Number(m[1])] ?? piece) : piece;
+    });
+}
+
 interface Paragraph {
   text: string;
   maths: Element[];
@@ -91,6 +102,7 @@ export function extractOccurrences(doc: Document): Occurrence[] {
           gloss: def.gloss,
           confidence: def.confidence,
           sentence: sentence.replace(/§(\d+)§/g, (_, i: string) => `$${tex(maths[Number(i)]!)}$`),
+          parts: toParts(sentence, maths),
         };
       }
     }

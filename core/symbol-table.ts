@@ -5,8 +5,10 @@
 export interface DefinitionInfo {
   gloss: string;
   confidence: number;
-  /** Source sentence, shown in the popup so the reader can judge it. */
+  /** Source sentence with formulas as $TeX$, for logs and tests. */
   sentence: string;
+  /** Same sentence as text runs and the page's own <math> elements, for the popup to clone. */
+  parts: Array<string | Element>;
 }
 
 export interface Occurrence {
