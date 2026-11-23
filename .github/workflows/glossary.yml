@@ -1,0 +1,41 @@
+name: Glossary refresh
+
+# Rebuilds data/glossary/generated.json from ADictML (CC BY 4.0) and Wikidata (CC0)
+# once a month and opens a PR when the entries changed. Nothing is fetched at runtime.
+on:
+  schedule:
+    - cron: '17 3 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # The script only needs Node (type-stripped TS + fetch); no install step.
+      - run: node --experimental-strip-types --no-warnings scripts/build-glossary.ts > data/glossary/generated.json
+      - name: Open a PR if entries changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The "retrieved" date changes every run; only open a PR for real entry changes.
+          if git diff --quiet -I '"retrieved"' -- data/glossary/generated.json; then
+            echo "No glossary changes."
+            exit 0
+          fi
+          branch="chore/glossary-$(date -u +%Y-%m)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add data/glossary/generated.json
+          git commit -m "chore(data): refresh generated glossary"
+          git push --force -u origin "$branch"
+          gh pr create --fill --body "Monthly refresh of \`data/glossary/generated.json\` (ADictML CC BY 4.0, Wikidata CC0). PRs opened with GITHUB_TOKEN don't trigger CI: close and reopen this PR to run the required \`build\` check." || echo "PR already open for $branch."

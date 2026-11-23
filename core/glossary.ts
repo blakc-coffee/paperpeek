@@ -10,6 +10,10 @@ export interface GlossaryEntry {
   diagram?: string;
   /** Key into ui/demos DEMOS: an interactive widget behind "Try it". */
   demo?: string;
+  /** Attribution for entries not written for PaperPeek (defaults: PaperPeek glossary, CC BY 4.0). */
+  source?: string;
+  license?: string;
+  url?: string;
 }
 
 export interface TermMatch {

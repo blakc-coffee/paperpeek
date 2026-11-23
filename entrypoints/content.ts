@@ -3,6 +3,7 @@ import { compileMatcher } from '../core/glossary';
 import { SymbolTable } from '../core/symbol-table';
 import { cached, lookupWikipedia } from '../core/wiki';
 import glossary from '../data/glossary/core.json';
+import generated from '../data/glossary/generated.json';
 import { attachHover } from '../ui/hover';
 import { attachLookup, type WikiMode } from '../ui/lookup';
 import { Popup } from '../ui/popup';
@@ -16,8 +17,10 @@ export default defineContentScript({
   main(ctx) {
     const start = performance.now();
     const table = new SymbolTable(extractOccurrences(document));
-    const match = compileMatcher(glossary.entries);
-    const terms = new TermIndex(document, document.querySelectorAll('.ltx_p, .ltx_caption'), match);
+    // Only the hand-written core terms are highlighted; the ~365 generated entries
+    // (ADictML, Wikidata) answer when the reader selects a phrase.
+    const terms = new TermIndex(document, document.querySelectorAll('.ltx_p, .ltx_caption'), compileMatcher(glossary.entries));
+    const match = compileMatcher([...glossary.entries, ...generated.entries]);
     const unpaint = paintTerms(document, terms);
     const popup = new Popup(document);
     const detachHover = attachHover(document, { table, terms }, popup);

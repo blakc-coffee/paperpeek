@@ -89,7 +89,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), 71 AI/ML terms are highlighted with explanation popups (v0.4), five of them open interactive demos (v0.5), and selecting any other phrase offers an opt-in Wikipedia lookup (v0.6). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), 71 AI/ML terms are highlighted with explanation popups (v0.4), five of them open interactive demos (v0.5), selecting any phrase looks it up in a ~436-term bundled glossary built from ADictML and Wikidata (v0.7), and anything else offers an opt-in Wikipedia lookup (v0.6). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -109,7 +109,7 @@ Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpack
 - [x] v0.4 ML term glossary + highlighting
 - [x] v0.5 Interactive demos
 - [x] v0.6 Wikipedia fallback (opt-in)
-- [ ] v0.7 Glossary build pipeline
+- [x] v0.7 Glossary build pipeline
 - [ ] v0.8 Multi-site adapters
 - [ ] v0.9 Evaluation on SymDef
 - [ ] v1.0 Chrome Web Store + Firefox Add-ons release
@@ -120,4 +120,12 @@ PaperPeek builds on ideas from [ScholarPhi](https://arxiv.org/abs/2009.14237) (H
 
 ## License
 
-Code: [MIT](LICENSE). The bundled glossary in [`data/glossary/`](data/glossary/) (text and diagrams written for PaperPeek) is CC BY 4.0; later sources will carry their own license per entry.
+Code: [MIT](LICENSE). Bundled glossary data in [`data/glossary/`](data/glossary/), with the license recorded on every entry and shown in its popup:
+
+| File | Source | License |
+|---|---|---|
+| `core.json`, `diagrams.ts` | written for PaperPeek (71 terms, 8 diagrams) | CC BY 4.0 |
+| `generated.json` | [Aalto Dictionary of Machine Learning](https://github.com/AaltoDictionaryofML/AaltoDictionaryofML.github.io) by Alexander Jung and contributors (first sentence of each definition, LaTeX converted to text) | CC BY 4.0 |
+| `generated.json` | [Wikidata](https://www.wikidata.org/) labels and descriptions | CC0 |
+
+`generated.json` is rebuilt by `pnpm glossary` (`scripts/build-glossary.ts`) and refreshed monthly by a GitHub Action that opens a PR.
