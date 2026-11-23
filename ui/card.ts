@@ -1,7 +1,9 @@
 // Popup content. Built with DOM APIs only: page text goes in as text nodes and
 // page formulas are cloned and stripped of attributes that could run code.
 
+import type { GlossaryEntry } from '../core/glossary';
 import type { LookupResult } from '../core/symbol-table';
+import { DIAGRAMS } from '../data/glossary/diagrams';
 
 const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
 const UNSAFE_ATTR = /^(?:on|href$|xlink:href$|src$|srcset$|style$)/i;
@@ -166,6 +168,28 @@ export function renderFigureCard(
   jump.addEventListener('click', () => onJump(figure));
   const badge = sectionLabel(doc, figure.closest('section[id]')?.id ?? null);
   foot.append(jump, el(doc, 'span', 'note', badge ? `§ ${badge}` : 'From this paper'));
+  card.appendChild(foot);
+  return card;
+}
+
+/** An AI/ML term from the bundled glossary: explanation, formula, diagram, source. */
+export function renderTermCard(doc: Document, entry: GlossaryEntry): HTMLElement {
+  const card = el(doc, 'div', 'card is-term');
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', `AI/ML term: ${entry.term}`);
+  const head = el(doc, 'div', 'head');
+  head.append(el(doc, 'span', 'term', entry.term), el(doc, 'span', 'badge', 'AI/ML term'));
+  card.append(head, el(doc, 'p', 'short', entry.short));
+  if (entry.formula) card.appendChild(el(doc, 'div', 'formula', entry.formula));
+  const svg = entry.diagram ? DIAGRAMS[entry.diagram] : undefined;
+  if (svg) {
+    // Our own bundled markup, parsed as XML (never page content).
+    const diagram = el(doc, 'div', 'diagram');
+    diagram.appendChild(doc.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true));
+    card.appendChild(diagram);
+  }
+  const foot = el(doc, 'div', 'foot');
+  foot.appendChild(el(doc, 'span', 'note', 'PaperPeek glossary · CC BY 4.0'));
   card.appendChild(foot);
   return card;
 }

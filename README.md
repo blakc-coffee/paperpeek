@@ -18,7 +18,11 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ![PaperPeek figure preview on arxiv.org: hovering the Figure 2 reference shows both attention diagrams, the caption, and a Jump to Figure 2 button](docs/images/real-figure-arxiv.jpg)
 
-> The images below are design mockups of upcoming features (term popups arrive in v0.4).
+**Real screenshot (v0.4)** — AI/ML terms are tinted and underlined (first use per section); hovering "multi-head attention" shows a plain explanation, the formula, and a diagram:
+
+![PaperPeek term popup on arxiv.org: highlighted terms in §3.1 and a popup for multi-head attention with its explanation, formula and a heads → Concat → Linear diagram](docs/images/real-term-arxiv.jpg)
+
+> The images below are design mockups (the softmax temperature demo arrives in v0.5).
 
 **Hover a symbol** → its definition, quoted from the paper, with a jump link:
 
@@ -38,7 +42,8 @@ What PaperPeek shows when you hover these on [arxiv.org/html/1706.03762](https:/
 | `W_i^Q` in multi-head attention | Symbol | "projection matrix for queries, head *i*" · its shape `d_model × d_k` as written in the paper |
 | `h` | Symbol | "number of parallel attention heads" · the value used in the paper (8) |
 | "multi-head attention" | AI/ML term | short explanation · formula · diagram of heads being concatenated |
-| "softmax" | AI/ML term | explanation · formula · temperature slider demo |
+| "residual connection" | AI/ML term | explanation · `y = x + F(x)` · skip-connection diagram |
+| "softmax" | AI/ML term | explanation · formula · scores → probabilities diagram (temperature slider in v0.5) |
 | "Figure 2" link | Figure | both diagram panels and the caption, inline · jump link |
 | "Table 1" link | Table | the table (scrollable, with its math) and caption · jump link |
 | "label smoothing" (not in the bundled glossary) | AI/ML term | Wikipedia summary + thumbnail, with CC BY-SA credit (opt-in) |
@@ -74,7 +79,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), and hovering a Figure or Table reference previews it (v0.3). AI/ML term popups arrive in v0.4. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), and 71 AI/ML terms are highlighted with explanation popups (v0.4). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -91,7 +96,7 @@ Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpack
 - [x] v0.1 arXiv symbol table + definition detection
 - [x] v0.2 Hover popup
 - [x] v0.3 Figure previews
-- [ ] v0.4 ML term glossary + highlighting
+- [x] v0.4 ML term glossary + highlighting
 - [ ] v0.5 Interactive demos
 - [ ] v0.6 Wikipedia fallback (opt-in)
 - [ ] v0.7 Glossary build pipeline
@@ -105,4 +110,4 @@ PaperPeek builds on ideas from [ScholarPhi](https://arxiv.org/abs/2009.14237) (H
 
 ## License
 
-Code: [MIT](LICENSE). Bundled glossary data carries per-source licenses under `data/` (added in later milestones).
+Code: [MIT](LICENSE). The bundled glossary in [`data/glossary/`](data/glossary/) (text and diagrams written for PaperPeek) is CC BY 4.0; later sources will carry their own license per entry.

@@ -78,6 +78,24 @@ const STYLE = `
   font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums;
 }
 .media .table td, .media .table th { padding: 2px 6px; white-space: nowrap; }
+.term { color: var(--accent); font-weight: 600; font-size: 16px; line-height: 24px; letter-spacing: -0.01em; }
+.short { margin: 4px 0 0; }
+.formula {
+  margin-top: 8px; padding: 4px 8px; border-radius: 6px; background: var(--accent-bg); overflow-x: auto; white-space: nowrap;
+  font: italic 15px/22px "Cambria Math", "STIX Two Math", "Latin Modern Math", Georgia, serif;
+}
+.diagram { margin-top: 8px; }
+.diagram svg { display: block; width: 100%; height: auto; }
+.d-box { fill: var(--accent-bg); stroke: var(--accent); }
+.d-text { fill: var(--fg); font: 11px system-ui, sans-serif; }
+.d-line { stroke: var(--muted); stroke-width: 1.25; }
+.d-head, .d-bar { fill: var(--accent); }
+.d-node { fill: var(--accent-bg); stroke: var(--accent); }
+.d-off { fill: none; stroke: var(--muted); stroke-dasharray: 2 2; }
+.d-curve, .d-curve2, .d-curve3 { fill: none; stroke-width: 2; }
+.d-curve { stroke: var(--accent); }
+.d-curve2 { stroke: #f59e0b; }
+.d-curve3 { stroke: #10b981; }
 .caption {
   margin-top: 8px; color: var(--fg); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
@@ -88,7 +106,8 @@ export class Popup {
   readonly host: HTMLElement;
   private readonly panel: HTMLElement;
   private closeTimer = 0;
-  anchor: Element | null = null;
+  /** Identity of what the popup is showing (a symbol element or a term hit). */
+  anchor: object | null = null;
 
   constructor(private readonly doc: Document) {
     this.host = doc.createElement('paperpeek-popup');
@@ -106,9 +125,9 @@ export class Popup {
     return this.anchor !== null;
   }
 
-  show(hovered: Element, card: HTMLElement): void {
+  show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement): void {
     window.clearTimeout(this.closeTimer);
-    this.anchor = hovered;
+    this.anchor = anchor;
     this.panel.classList.remove('open', 'closing', 'theme-dark', 'theme-light');
     const theme = pageTheme(this.doc);
     if (theme) this.panel.classList.add(theme);
@@ -116,7 +135,7 @@ export class Popup {
     if (!this.panel.matches(':popover-open')) this.panel.showPopover();
 
     const { left, top, side } = place(
-      hovered.getBoundingClientRect(),
+      anchorRect,
       { width: card.offsetWidth, height: card.offsetHeight },
       { width: window.innerWidth, height: window.innerHeight },
     );

@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { SymbolTable, type Occurrence } from '../core/symbol-table';
-import { figureLabel, renderCard, renderFigureCard, sectionLabel } from './card';
+import { compileMatcher } from '../core/glossary';
+import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
+import { TermIndex } from './terms';
 import { figureRefAt, occurrenceAt } from './hover';
 import { place } from './place';
 
@@ -156,5 +158,43 @@ describe('renderFigureCard', () => {
     expect(figureLabel(tab)).toBe('Table 1');
     expect(card.querySelector('.media table')?.textContent).toContain('Self-Attention');
     expect(card.querySelector('[onclick], [style], img')).toBeNull();
+  });
+});
+
+const GLOSSARY = [
+  { id: 'attention', term: 'attention', short: 'Weighted average of inputs.', formula: 'softmax(QKᵀ/√dₖ)V', diagram: 'attention' },
+  { id: 'dropout', term: 'dropout', short: 'Randomly zeroes activations.' },
+];
+
+describe('TermIndex', () => {
+  it('indexes the first use of each term per section, skipping math, links and citations', () => {
+    document.body.innerHTML = `
+      <section id="S1">
+        <p class="ltx_p">We apply <a>dropout</a> then attention <math><mi>x</mi></math>, then attention again and dropout.</p>
+        <p class="ltx_p">More attention.</p>
+      </section>
+      <section id="S2"><p class="ltx_p">Attention <cite class="ltx_cite">dropout</cite>.</p></section>`;
+    const index = new TermIndex(document, document.querySelectorAll('.ltx_p'), compileMatcher(GLOSSARY));
+    expect(index.hits.map((h) => [h.range.toString(), h.entry.id, h.range.startContainer.parentElement?.closest('section')?.id])).toEqual([
+      ['attention', 'attention', 'S1'],
+      ['dropout', 'dropout', 'S1'],
+      ['Attention', 'attention', 'S2'],
+    ]);
+  });
+});
+
+describe('renderTermCard', () => {
+  it('shows term, explanation, formula, our own diagram and the source', () => {
+    const card = renderTermCard(document, GLOSSARY[0]!);
+    expect(card.querySelector('.term')?.textContent).toBe('attention');
+    expect(card.querySelector('.short')?.textContent).toBe('Weighted average of inputs.');
+    expect(card.querySelector('.formula')?.textContent).toBe('softmax(QKᵀ/√dₖ)V');
+    expect(card.querySelector('.diagram svg')?.getAttribute('role')).toBe('img');
+    expect(card.querySelector('.note')?.textContent).toContain('CC BY 4.0');
+  });
+
+  it('omits formula and diagram when the entry has none', () => {
+    const card = renderTermCard(document, GLOSSARY[1]!);
+    expect(card.querySelector('.formula, .diagram')).toBeNull();
   });
 });
