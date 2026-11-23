@@ -1,9 +1,11 @@
-// One delegated listener set for the whole page: no per-symbol or per-link
-// handlers, so cost stays flat however many formulas and references a paper has.
+// One delegated listener set for the whole page: no per-symbol, per-link or
+// per-term handlers, so cost stays flat however long the paper is. Pointer
+// moves are coalesced to one hit-test per animation frame.
 
 import type { Occurrence, SymbolTable } from '../core/symbol-table';
-import { renderCard, renderFigureCard } from './card';
+import { renderCard, renderFigureCard, renderTermCard } from './card';
 import type { Popup } from './popup';
+import type { TermIndex } from './terms';
 
 const OPEN_DELAY_MS = 120;
 const CLOSE_DELAY_MS = 200;
@@ -29,18 +31,24 @@ export function figureRefAt(doc: Document, target: EventTarget | null): { ref: E
   return { ref, figure };
 }
 
-/** What a hover over `target` should show: the anchor element and a card builder. */
-function hitAt(
-  doc: Document,
-  table: SymbolTable,
-  popup: Popup,
-  target: EventTarget | null,
-): { anchor: Element; card: () => HTMLElement | undefined } | undefined {
+export interface HoverSources {
+  table: SymbolTable;
+  terms: TermIndex;
+}
+
+interface Hit {
+  anchor: object;
+  rect: () => DOMRectReadOnly;
+  card: () => HTMLElement | undefined;
+}
+
+function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, target: EventTarget | null, x: number, y: number): Hit | undefined {
   const jump = (to: Element): void => popup.jumpTo(to);
   const occ = occurrenceAt(table, target);
   if (occ) {
     return {
       anchor: occ.el,
+      rect: () => occ.el.getBoundingClientRect(),
       card: () => {
         const result = table.lookup(occ.key, occ.order);
         return result && renderCard(doc, occ.el, result, jump);
@@ -48,41 +56,79 @@ function hitAt(
     };
   }
   const fig = figureRefAt(doc, target);
-  return fig && { anchor: fig.ref, card: () => renderFigureCard(doc, fig.ref, fig.figure, jump) };
+  if (fig) {
+    return { anchor: fig.ref, rect: () => fig.ref.getBoundingClientRect(), card: () => renderFigureCard(doc, fig.ref, fig.figure, jump) };
+  }
+  const term = terms.at(doc, x, y);
+  return term && { anchor: term.hit, rect: () => term.rect, card: () => renderTermCard(doc, term.hit.entry) };
 }
 
-export function attachHover(doc: Document, table: SymbolTable, popup: Popup): () => void {
+export function attachHover(doc: Document, sources: HoverSources, popup: Popup): () => void {
   let openTimer = 0;
   let closeTimer = 0;
-  const inPopup = (e: Event): boolean => e.composedPath().includes(popup.host);
+  let pending: object | null = null;
+  let frame = 0;
+  let last: { inPopup: boolean; target: EventTarget | null; x: number; y: number } | null = null;
 
-  const scheduleClose = (): void => {
+  const cancelOpen = (): void => {
     window.clearTimeout(openTimer);
+    pending = null;
+  };
+  const keepOpen = (): void => {
     window.clearTimeout(closeTimer);
-    closeTimer = window.setTimeout(() => popup.hide(), CLOSE_DELAY_MS);
+    closeTimer = 0;
+  };
+  const scheduleClose = (): void => {
+    if (!popup.isOpen || closeTimer) return;
+    closeTimer = window.setTimeout(() => {
+      closeTimer = 0;
+      popup.hide();
+    }, CLOSE_DELAY_MS);
   };
 
-  const onOver = (e: PointerEvent): void => {
-    if (inPopup(e)) {
-      window.clearTimeout(closeTimer);
+  const track = (): void => {
+    frame = 0;
+    if (!last) return;
+    const { inPopup, target, x, y } = last;
+    if (inPopup) {
+      cancelOpen();
+      keepOpen();
       return;
     }
-    const hit = hitAt(doc, table, popup, e.target);
-    if (!hit) return;
-    window.clearTimeout(closeTimer);
-    if (popup.anchor === hit.anchor) return;
-    window.clearTimeout(openTimer);
+    const hit = hitAt(doc, sources, popup, target, x, y);
+    if (!hit) {
+      cancelOpen();
+      scheduleClose();
+      return;
+    }
+    if (hit.anchor === popup.anchor) {
+      cancelOpen();
+      keepOpen();
+      return;
+    }
+    if (hit.anchor === pending) return;
+    cancelOpen();
+    pending = hit.anchor;
     openTimer = window.setTimeout(() => {
+      pending = null;
       const card = hit.card();
-      if (card) popup.show(hit.anchor, card);
+      if (!card) return;
+      keepOpen();
+      popup.show(hit.anchor, hit.rect(), card);
     }, OPEN_DELAY_MS);
   };
 
-  const onOut = (e: PointerEvent): void => {
-    const to = e.relatedTarget;
-    if (to instanceof Node && (popup.host.contains(to) || to === popup.host)) return;
-    if (popup.anchor && to instanceof Node && popup.anchor.contains(to)) return;
-    if (inPopup(e) || hitAt(doc, table, popup, e.target)) scheduleClose();
+  const onMove = (e: PointerEvent): void => {
+    // composedPath() is only valid during dispatch, so read it now.
+    last = { inPopup: e.composedPath().includes(popup.host), target: e.target, x: e.clientX, y: e.clientY };
+    if (!frame) frame = requestAnimationFrame(track);
+  };
+
+  const onLeave = (e: PointerEvent): void => {
+    if (e.relatedTarget === null) {
+      cancelOpen();
+      scheduleClose();
+    }
   };
 
   const onKey = (e: KeyboardEvent): void => {
@@ -90,21 +136,24 @@ export function attachHover(doc: Document, table: SymbolTable, popup: Popup): ()
   };
 
   const onDown = (e: PointerEvent): void => {
-    if (popup.isOpen && !inPopup(e)) popup.hide();
+    if (popup.isOpen && !e.composedPath().includes(popup.host)) popup.hide();
   };
 
   const onScroll = (): void => {
     if (popup.isOpen) popup.hide();
   };
 
-  doc.addEventListener('pointerover', onOver);
-  doc.addEventListener('pointerout', onOut);
+  doc.addEventListener('pointermove', onMove, { passive: true });
+  doc.addEventListener('pointerout', onLeave);
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('pointerdown', onDown, true);
   window.addEventListener('scroll', onScroll, { passive: true });
   return () => {
-    doc.removeEventListener('pointerover', onOver);
-    doc.removeEventListener('pointerout', onOut);
+    cancelAnimationFrame(frame);
+    cancelOpen();
+    keepOpen();
+    doc.removeEventListener('pointermove', onMove);
+    doc.removeEventListener('pointerout', onLeave);
     doc.removeEventListener('keydown', onKey);
     doc.removeEventListener('pointerdown', onDown, true);
     window.removeEventListener('scroll', onScroll);
