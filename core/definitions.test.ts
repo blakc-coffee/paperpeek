@@ -112,3 +112,26 @@ describe('list and count patterns', () => {
     expect(glosses('Given a mini-batch §0§ of §1§ examples, we train.', 2).m1).toEqual(['number of examples', 0.4]);
   });
 });
+
+describe('respectively', () => {
+  const maths = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, keys: [`s${i}`] }));
+  const glosses = (text: string, n: number) =>
+    Object.fromEntries(findDefinitions({ text, maths: maths(n) }).map((d) => [d.mathId, d.gloss]));
+
+  it('pairs two symbol lists with two gloss lists in order', () => {
+    expect(glosses('where §0§ and §1§ are the number of heads and the model dimension, respectively.', 2)).toEqual({
+      m0: 'number of heads',
+      m1: 'model dimension',
+    });
+    expect(glosses('§0§, §1§, and §2§ denote the input, the hidden state, and the output, respectively.', 3)).toEqual({
+      m0: 'input',
+      m1: 'hidden state',
+      m2: 'output',
+    });
+  });
+
+  it('falls back to the shared gloss when the lists do not line up', () => {
+    const g = glosses('where §0§ and §1§ are the input, the hidden state and the output, respectively.', 2);
+    expect(g.m0).toBe(g.m1);
+  });
+});

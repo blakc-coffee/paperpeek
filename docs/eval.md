@@ -41,3 +41,9 @@ Three changes came from reading the misses:
   - symbols defined inside display equations.
 
   TaDDEx, the model released with SymDef, handles these better. It needs a GPU-class model, which PaperPeek avoids by design.
+
+### "Respectively" lists
+
+PaperPeek now pairs "*a* and *b* are the input and output, respectively" one to one, giving *a* the gloss "input" and *b* the gloss "output". It only does this when the two lists have the same length. The SymDef scores above are unchanged: just 10 defined mentions in the test split sit in "respectively" sentences, and none of them has this shape.
+
+A reversed form, "the A and the B are *p* and *q*, respectively", was tried and removed. It added two false positives and no true positives, because SymDef's annotators do not count that phrasing as a definition.

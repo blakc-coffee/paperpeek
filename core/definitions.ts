@@ -53,6 +53,12 @@ const AFTER: Array<[RegExp, number, boolean]> = [
 ];
 const PARTICIPLE = /^\w+ed$/i;
 
+// Paired lists: "a and b are the input and output, respectively" gives each symbol its own gloss.
+const RESPECTIVELY = new RegExp(
+  `((?:§\\d+§\\s*,\\s*)*§\\d+§\\s*,?\\s*and\\s+§\\d+§)\\s+(?:are|denote|represent|stand for|correspond to)\\s+([^;:.§]+?),?\\s+respectively\\b`,
+  'gi',
+);
+
 // Coordinated symbols share one gloss: "where a, b, and c are trainable parameters".
 const LIST = new RegExp(
   `(?:\\b(where|and|with|here)\\s+)?((?:§\\d+§\\s*,\\s*)+(?:and\\s+)?§\\d+§|§\\d+§\\s+and\\s+§\\d+§)\\s+are\\s+${GLOSS}`,
@@ -139,6 +145,15 @@ export function findDefinitions(sentence: Sentence): Definition[] {
     }
   };
 
+  // First, so each symbol keeps its own gloss: later patterns only replace lower-confidence results.
+  const pair = (symbolList: string, glossList: string): void => {
+    const symbols = [...symbolList.matchAll(/§(\d+)§/g)].map((s) => Number(s[1]));
+    const glosses = glossList.split(/\s*,\s*(?:and\s+)?|\s+and\s+/).map(clean).filter(Boolean);
+    // Only when the two lists line up one to one; "queries and keys" inside a gloss would break the pairing.
+    if (glosses.length !== symbols.length) return;
+    symbols.forEach((index, i) => offer(index, glosses[i]!, STRONG));
+  };
+  for (const m of sentence.text.matchAll(RESPECTIVELY)) pair(m[1] ?? '', m[2] ?? '');
   for (const [pattern, confidence, copula] of AFTER) {
     for (const m of sentence.text.matchAll(pattern)) {
       const raw = m[2] ?? '';
