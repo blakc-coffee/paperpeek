@@ -10,7 +10,11 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ## What it looks like
 
-> Design mockups of the planned popups — the extension is in early development (see [Status](#status)).
+**Real screenshot (v0.2)** — hovering `d_k` in *Attention Is All You Need* on arxiv.org, following arXiv's dark theme:
+
+![PaperPeek popup on arxiv.org: hovering d_k shows "queries and keys of dimension", the §3.2.1 badge, the defining sentence with real MathML, and a Jump to definition button](docs/images/real-popup-arxiv.png)
+
+> The images below are design mockups of upcoming features (term popups arrive in v0.4).
 
 **Hover a symbol** → its definition, quoted from the paper, with a jump link:
 
@@ -65,7 +69,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** The extension skeleton builds for Chrome and Firefox and runs on arXiv HTML pages; popups arrive in v0.2. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2). AI/ML term popups arrive in v0.4. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -74,13 +78,13 @@ pnpm install
 pnpm build
 ```
 
-Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and the DevTools console shows `[PaperPeek] … formulas, … figures on this page`.
+Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and hover any symbol in a formula (e.g. `d_k`, `h`, `N`).
 
 ## Roadmap
 
-- [ ] v0.0 Repo foundation (docs, WXT scaffold, CI, release automation)
-- [ ] v0.1 arXiv symbol table + definition detection
-- [ ] v0.2 Hover popup
+- [x] v0.0 Repo foundation (docs, WXT scaffold, CI, release automation)
+- [x] v0.1 arXiv symbol table + definition detection
+- [x] v0.2 Hover popup
 - [ ] v0.3 Figure previews
 - [ ] v0.4 ML term glossary + highlighting
 - [ ] v0.5 Interactive demos
