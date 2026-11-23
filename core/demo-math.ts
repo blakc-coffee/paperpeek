@@ -46,3 +46,16 @@ export function dropoutMask(units: number, p: number, seed: number): boolean[] {
 export function attentionWeights(q: readonly number[][], k: readonly number[][], sharpness: number): number[][] {
   return q.map((qi) => softmax(k.map((kj) => qi.reduce((s, v, d) => s + v * (kj[d] ?? 0), 0) * sharpness)));
 }
+
+/**
+ * How many of the most likely tokens nucleus (top-p) sampling keeps: the smallest prefix of
+ * the probabilities, sorted high to low, whose sum reaches p. Always at least one token.
+ */
+export function nucleusSize(sortedProbs: readonly number[], p: number): number {
+  let sum = 0;
+  for (let i = 0; i < sortedProbs.length; i++) {
+    sum += sortedProbs[i] ?? 0;
+    if (sum >= p - 1e-9) return i + 1;
+  }
+  return sortedProbs.length;
+}

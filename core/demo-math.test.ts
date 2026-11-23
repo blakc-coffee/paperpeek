@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attentionWeights, descentPath, dropoutMask, gelu, relu, sigmoid, softmax } from './demo-math';
+import { attentionWeights, descentPath, dropoutMask, gelu, nucleusSize, relu, sigmoid, softmax } from './demo-math';
 
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
 
@@ -54,5 +54,15 @@ describe('attentionWeights', () => {
     expect(w.map(sum).map((s) => Number(s.toFixed(12)))).toEqual([1, 1]);
     expect(w[0]!.indexOf(Math.max(...w[0]!))).toBe(0);
     expect(w[1]!.indexOf(Math.max(...w[1]!))).toBe(1);
+  });
+});
+
+describe('nucleusSize', () => {
+  const probs = [0.38, 0.22, 0.14, 0.09, 0.07, 0.05, 0.03, 0.02];
+  it('keeps the smallest prefix whose mass reaches p', () => {
+    expect(nucleusSize(probs, 0.8)).toBe(4);
+    expect(nucleusSize(probs, 0.6)).toBe(2);
+    expect(nucleusSize(probs, 0.1)).toBe(1);
+    expect(nucleusSize(probs, 1)).toBe(8);
   });
 });
