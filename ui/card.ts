@@ -40,7 +40,7 @@ export function sectionLabel(doc: Document, sectionId: string | null): string {
   return label.length > MAX_BADGE ? `${label.slice(0, MAX_BADGE - 1)}…` : label;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(
+export function el<K extends keyof HTMLElementTagNameMap>(
   doc: Document,
   tag: K,
   className: string,

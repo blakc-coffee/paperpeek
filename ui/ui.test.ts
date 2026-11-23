@@ -4,6 +4,8 @@ import { SymbolTable, type Occurrence } from '../core/symbol-table';
 import { compileMatcher } from '../core/glossary';
 import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
 import { DEMOS } from './demos';
+import { glossaryEntryFor, lookupText } from './lookup';
+import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
 import { figureRefAt, occurrenceAt } from './hover';
 import { place } from './place';
@@ -256,5 +258,66 @@ describe('demos', () => {
     expect(card.querySelector('.demo')).toBeNull();
     expect(card.querySelector('.diagram svg')).not.toBeNull();
     expect(onResize).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('lookupText', () => {
+  const select = (html: string, selector: string) => {
+    document.body.innerHTML = html;
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector(selector)!);
+    const sel = document.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return lookupText(sel);
+  };
+
+  it('accepts short phrases, trimming punctuation', () => {
+    expect(select('<p>We use <b> label smoothing, </b> here.</p>', 'b')).toBe('label smoothing');
+  });
+
+  it('rejects formulas, long selections and symbol-only text', () => {
+    expect(select('<p><math><mi id="x">abc</mi></math></p>', '#x')).toBeNull();
+    expect(select('<p><b>one two three four five six</b></p>', 'b')).toBeNull();
+    expect(select('<p><b>x = 1</b></p>', 'b')).toBeNull();
+  });
+});
+
+describe('glossaryEntryFor', () => {
+  const match = compileMatcher(GLOSSARY);
+  it('only answers when one term covers the whole selection', () => {
+    expect(glossaryEntryFor('dropout', match)?.id).toBe('dropout');
+    expect(glossaryEntryFor('dropout rate', match)).toBeUndefined();
+    expect(glossaryEntryFor('beam search', match)).toBeUndefined();
+  });
+});
+
+describe('renderWikiCard', () => {
+  const summary = { title: 'Label noise', extract: 'Label noise is …', url: 'https://en.wikipedia.org/wiki/Label_noise', closest: true, thumbnail: { src: 'https://upload.wikimedia.org/a.png', width: 100, height: 80 } };
+
+  it('asks before sending anything, then calls back on press', () => {
+    const onLookup = vi.fn();
+    const card = renderWikiCard(document, { s: 'ask', term: 'label smoothing', onLookup });
+    expect(card.textContent).toContain('Sends only this term');
+    (card.querySelector('button') as HTMLButtonElement).click();
+    expect(onLookup).toHaveBeenCalledOnce();
+  });
+
+  it('shows the article with credit, a safe link and the closest-match note', () => {
+    const card = renderWikiCard(document, { s: 'ok', term: 'label smoothing', summary });
+    expect(card.querySelector('.term')?.textContent).toBe('Label noise');
+    expect(card.textContent).toContain('Closest article for “label smoothing”');
+    const a = card.querySelector('a')!;
+    expect([a.href, a.target, a.rel]).toEqual([summary.url, '_blank', 'noopener noreferrer']);
+    expect(card.querySelector('img')?.referrerPolicy).toBe('no-referrer');
+    expect(card.textContent).toContain('CC BY-SA 4.0');
+  });
+
+  it('renders loading, missing and error states', () => {
+    expect(renderWikiCard(document, { s: 'loading', term: 't' }).getAttribute('aria-busy')).toBe('true');
+    expect(renderWikiCard(document, { s: 'missing', term: 't' }).textContent).toContain('No Wikipedia article');
+    const retry = vi.fn();
+    (renderWikiCard(document, { s: 'error', term: 't', retry }).querySelector('button') as HTMLButtonElement).click();
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

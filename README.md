@@ -28,6 +28,10 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 Five demos ship today: **softmax temperature**, **activation functions** (ReLU / GELU / sigmoid at any x), **toy self-attention heatmap** (score-scale slider), **gradient descent on x²** (learning-rate slider, shows divergence above η = 1), and **dropout** (drop-rate slider + resample).
 
+**Real screenshot (v0.6)** — select any word or phrase. Glossary terms answer offline; anything else offers a Wikipedia lookup that sends only that term (ask / always / never in the extension's options):
+
+![PaperPeek Wikipedia fallback on arxiv.org: selecting "label smoothing" shows the closest article, Label noise, with its summary and CC BY-SA credit](docs/images/real-wikipedia-arxiv.jpg)
+
 > The images below are the original design mockups.
 
 **Hover a symbol** → its definition, quoted from the paper, with a jump link:
@@ -52,7 +56,7 @@ What PaperPeek shows when you hover these on [arxiv.org/html/1706.03762](https:/
 | "softmax" | AI/ML term | explanation · formula · scores → probabilities diagram · ▶ Try it: temperature slider |
 | "Figure 2" link | Figure | both diagram panels and the caption, inline · jump link |
 | "Table 1" link | Table | the table (scrollable, with its math) and caption · jump link |
-| "label smoothing" (not in the bundled glossary) | AI/ML term | Wikipedia summary + thumbnail, with CC BY-SA credit (opt-in) |
+| select "label smoothing" (not in the bundled glossary) | Lookup | asks first, then the closest Wikipedia article ("Label noise") with CC BY-SA credit |
 
 ## How it works
 
@@ -85,7 +89,7 @@ Everything runs in your browser. arXiv's HTML papers already contain each formul
 
 ## Status
 
-🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), 71 AI/ML terms are highlighted with explanation popups (v0.4), and five of them open interactive demos (v0.5). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** On arXiv HTML pages, hovering a symbol shows where it was defined (v0.2), hovering a Figure or Table reference previews it (v0.3), 71 AI/ML terms are highlighted with explanation popups (v0.4), five of them open interactive demos (v0.5), and selecting any other phrase offers an opt-in Wikipedia lookup (v0.6). See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
 
 ### Try the current build
 
@@ -104,7 +108,7 @@ Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpack
 - [x] v0.3 Figure previews
 - [x] v0.4 ML term glossary + highlighting
 - [x] v0.5 Interactive demos
-- [ ] v0.6 Wikipedia fallback (opt-in)
+- [x] v0.6 Wikipedia fallback (opt-in)
 - [ ] v0.7 Glossary build pipeline
 - [ ] v0.8 Multi-site adapters
 - [ ] v0.9 Evaluation on SymDef
