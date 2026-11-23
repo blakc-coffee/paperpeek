@@ -1,7 +1,7 @@
-# MathLens — Architecture & Roadmap
+# PaperPeek — Architecture & Roadmap
 
 ## Context
-Readers of ML/STEM papers lose track of author-defined notation (𝓛, **W**, λ) and jargon (attention, KL divergence). MathLens is a browser extension with hover popups:
+Readers of ML/STEM papers lose track of author-defined notation (𝓛, **W**, λ) and jargon (attention, KL divergence). PaperPeek is a browser extension with hover popups:
 - **Symbols**: where the symbol was defined, which definition applies at this position, and its section.
 - **AI/ML terms**: a short explanation, a diagram, the paper's own figure, and an optional mini interactive demo.
 
@@ -128,7 +128,7 @@ Each adapter implements one interface: `match(url)`, `mathNodes(root)`, `texOf(n
 - **Phase 2:** `mathjax3`/`mathjax4` via a `world:'MAIN'` bridge.
 - **Fallback:** `generic`, which matches terms only.
 
-The `resolver.ts` maps alphaXiv, HF Papers, OpenReview, ACL and arxiv/pdf pages to an "Open in arXiv HTML with MathLens" action.
+The `resolver.ts` maps alphaXiv, HF Papers, OpenReview, ACL and arxiv/pdf pages to an "Open in arXiv HTML with PaperPeek" action.
 
 ### UI (`src/ui`, vanilla TS, no framework)
 - **One popup element per tab:** a shadow-root host plus `popover="manual"`.
@@ -155,7 +155,7 @@ The `resolver.ts` maps alphaXiv, HF Papers, OpenReview, ACL and arxiv/pdf pages 
 
 ## 4. GitHub repo plan (small steps, one PR each)
 
-**Repo:** `github.com/<you>/mathlens`, public, MIT for code, per-source licenses under `data/`. Before creating it, check the name for clashes on the Chrome Web Store and GitHub.
+**Repo:** `github.com/blakc-coffee/paperpeek`, public, MIT for code, per-source licenses under `data/`. Before creating it, check the name for clashes on the Chrome Web Store and GitHub.
 
 **Conventions:**
 - Conventional commits; `main` is protected; one feature branch → one PR → squash merge.

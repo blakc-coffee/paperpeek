@@ -1,8 +1,8 @@
-# MathLens
+# PaperPeek
 
-**Hover any symbol or ML term in a paper and see what it means — where it was defined, with diagrams, the paper's own figures, and small interactive demos.**
+**Hover any symbol, AI/ML term or figure in a paper and see what it means — where it was defined, with diagrams, the paper's own figures, and small interactive demos.**
 
-Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or `λ` was introduced four pages ago, or googling "KL divergence" for the tenth time. MathLens is a browser extension that answers both in place:
+Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or `λ` was introduced four pages ago, or googling "KL divergence" for the tenth time. PaperPeek is a browser extension that answers both in place:
 
 - **Symbols** — hover `d_k` and see the sentence that defined it, the section it belongs to, and a link to jump there. When a symbol is redefined, you get the definition that applies *at your position* (nearest preceding definition).
 - **AI/ML terms** — hover "multi-head attention" and get a short explanation, its formula, a diagram, and (for some terms) a mini demo such as a softmax-temperature slider.
@@ -42,7 +42,7 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ## Prior art
 
-MathLens builds on ideas from [ScholarPhi](https://arxiv.org/abs/2009.14237) (Head et al., CHI 2021), which showed position-sensitive symbol definitions were the most-used reading aid in its user study.
+PaperPeek builds on ideas from [ScholarPhi](https://arxiv.org/abs/2009.14237) (Head et al., CHI 2021), which showed position-sensitive symbol definitions were the most-used reading aid in its user study.
 
 ## License
 

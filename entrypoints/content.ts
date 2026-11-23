@@ -8,6 +8,6 @@ export default defineContentScript({
   main() {
     const formulas = document.querySelectorAll('math.ltx_Math').length;
     const figures = document.querySelectorAll('figure.ltx_figure').length;
-    console.info(`[MathLens] ${formulas} formulas, ${figures} figures on this page`);
+    console.info(`[PaperPeek] ${formulas} formulas, ${figures} figures on this page`);
   },
 });

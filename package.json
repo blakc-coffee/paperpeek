@@ -1,8 +1,8 @@
 {
-  "name": "mathlens",
+  "name": "paperpeek",
   "version": "0.0.0",
   "private": true,
-  "description": "Hover any math symbol or ML term in a paper to see its definition, diagrams, figures and demos.",
+  "description": "Hover any symbol, AI/ML term or figure in a paper to see its definition, diagrams, figures and demos.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@9.15.9",
