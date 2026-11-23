@@ -30,6 +30,8 @@ export interface LookupResult {
 
 /** Definitions at or above this confidence beat a closer, weaker one. */
 const TRUSTED = 0.7;
+/** Weak but usually right (e.g. the noun phrase just before the symbol); lower scores are guesses. */
+const PLAUSIBLE = 0.5;
 
 export class SymbolTable {
   private readonly byKey = new Map<string, Occurrence[]>();
@@ -58,11 +60,16 @@ export class SymbolTable {
     if (!all?.length) return undefined;
     const defs = all.filter((o) => o.definition);
     const before = defs.filter((o) => o.order <= order);
-    const trusted = before.filter((o) => (o.definition?.confidence ?? 0) >= TRUSTED);
-    const preceding = trusted.at(-1) ?? before.at(-1);
+    const conf = (o: Occurrence): number => o.definition?.confidence ?? 0;
+    // Nearest trusted definition before this point, else the nearest plausible one;
+    // then the first plausible one further on; guesses (< PLAUSIBLE) only as a last resort.
+    const preceding = before.filter((o) => conf(o) >= TRUSTED).at(-1) ?? before.filter((o) => conf(o) >= PLAUSIBLE).at(-1);
     if (preceding) return { occurrence: preceding, kind: 'preceding' };
-    const later = defs[0];
+    const later = defs.find((o) => o.order > order && conf(o) >= PLAUSIBLE);
     if (later) return { occurrence: later, kind: 'later' };
+    const guess = before.at(-1);
+    if (guess) return { occurrence: guess, kind: 'preceding' };
+    if (defs[0]) return { occurrence: defs[0], kind: 'later' };
     return { occurrence: all[0]!, kind: 'first-use' };
   }
 }

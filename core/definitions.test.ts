@@ -87,3 +87,28 @@ describe('gloss hygiene', () => {
     expect(findDefinitions({ text: 'We simply §0§ here.', maths })).toEqual([]);
   });
 });
+
+describe('list and count patterns', () => {
+  const maths = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `m${i}`, keys: [`s${i}`] }));
+  const glosses = (text: string, n: number) =>
+    Object.fromEntries(findDefinitions({ text, maths: maths(n) }).map((d) => [d.mathId, [d.gloss, d.confidence]]));
+
+  it('reads later items of a where-list', () => {
+    expect(glosses('where §0§ is a word embedding matrix, §1§ is the vocabulary size.', 2)).toMatchObject({
+      m0: ['word embedding matrix', 0.9],
+      m1: ['vocabulary size', 0.7],
+    });
+  });
+
+  it('gives coordinated symbols the shared gloss', () => {
+    expect(glosses('where §0§, §1§, and §2§ are additional trainable parameters.', 3)).toEqual({
+      m0: ['additional trainable parameters', 0.9],
+      m1: ['additional trainable parameters', 0.9],
+      m2: ['additional trainable parameters', 0.9],
+    });
+  });
+
+  it('reads a symbol before a plural noun as a low-confidence count', () => {
+    expect(glosses('Given a mini-batch §0§ of §1§ examples, we train.', 2).m1).toEqual(['number of examples', 0.4]);
+  });
+});
