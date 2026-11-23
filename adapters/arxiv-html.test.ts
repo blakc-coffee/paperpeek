@@ -101,12 +101,25 @@ describe('site profiles', () => {
     expect(occ[1]!.definition?.sentence).toContain('$K$');
   });
 
-  it('ignores KaTeX and MathJax hidden MathML on generic pages', () => {
+  it('reads KaTeX and MathJax formulas from their hidden MathML, one formula per container', () => {
+    const katex = (tex: string, mathml: string) =>
+      `<span class="katex"><span class="katex-mathml"><math><semantics><mrow>${mathml}</mrow>` +
+      `<annotation encoding="application/x-tex">${tex}</annotation></semantics></math></span>` +
+      `<span class="katex-html" aria-hidden="true"><span class="mord">${tex}</span></span></span>`;
     document.body.innerHTML = `
-      <article><p>Let <span class="katex"><span class="katex-mathml"><math><mi>x</mi></math></span></span> be hidden,
-        and let <math id="v"><mi>y</mi></math> denote the visible one.</p></article>`;
+      <article><p>Let ${katex('W_q', '<msub><mi>W</mi><mi>q</mi></msub>')} denote the query projection,
+        and let <math id="v"><mi>y</mi></math> denote the visible one.
+        We use <mjx-container><mjx-math aria-hidden="true">x</mjx-math><mjx-assistive-mml><math><mi>x</mi></math></mjx-assistive-mml></mjx-container> later.</p></article>`;
     const occ = extractOccurrences(document, GENERIC);
-    expect(occ.map((o) => o.key)).toEqual(['y']);
-    expect(occ[0]!.definition?.gloss).toBe('visible one');
+    expect(occ.map((o) => [o.key, o.formula?.localName ?? null])).toEqual([
+      ['W_q', 'span'],
+      ['y', null],
+      ['x', 'mjx-container'],
+    ]);
+    expect(occ[0]!.definition?.gloss).toBe('query projection');
+    expect(occ[0]!.definition?.sentence).toContain('$W_q$');
+    // The quote carries the MathML, not KaTeX's styled spans (the popup has no KaTeX CSS).
+    expect((occ[0]!.definition?.parts.find((p) => typeof p !== 'string') as Element).localName).toBe('math');
+    expect(occ[1]!.definition?.gloss).toBe('visible one');
   });
 });

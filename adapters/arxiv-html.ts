@@ -14,7 +14,15 @@ export interface SiteProfile {
   tex: (math: Element) => string;
   /** Subtrees that are not visible prose or formulas (e.g. accessibility copies of rendered maths). */
   hidden?: string;
+  /**
+   * Rendered formulas that keep their MathML in a hidden copy (KaTeX, MathJax). Symbols are read
+   * from that copy, and the whole container counts as one formula in prose and on hover.
+   */
+  formula?: string;
 }
+
+/** The MathML inside a formula container, or the element itself when it already is <math>. */
+export const mathmlOf = (el: Element): Element => (el.localName === 'math' ? el : (el.querySelector('math') ?? el));
 
 /** arXiv HTML / ar5iv (LaTeXML): <math class="ltx_Math" alttext="d_{k}">, .ltx_p paragraphs, <section id="S3">. */
 export const LATEXML: SiteProfile = {
@@ -45,6 +53,7 @@ export const WIKIPEDIA: SiteProfile = {
 export const GENERIC: SiteProfile = {
   math: 'math',
   hidden: '.katex-mathml, mjx-assistive-mml, .MJX_Assistive_MathML, script, style',
+  formula: '.katex, mjx-container',
   prose: ':is(article, main, [role=main], .markdown-body, body) :is(p, li, dd, figcaption, blockquote)',
   tex: (math) => math.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? math.getAttribute('alttext') ?? '',
 };
@@ -90,7 +99,7 @@ interface Paragraph {
 }
 
 /** Flatten a paragraph to text with §i§ placeholders for each inline formula. */
-function readParagraph(p: Element, { math: mathSelector, hidden }: SiteProfile): Paragraph {
+function readParagraph(p: Element, { math: mathSelector, hidden, formula }: SiteProfile): Paragraph {
   const maths: Element[] = [];
   let text = '';
   const walk = (node: Node): void => {
@@ -98,7 +107,7 @@ function readParagraph(p: Element, { math: mathSelector, hidden }: SiteProfile):
       if (child.nodeType === 3) text += child.textContent ?? '';
       else if (child.nodeType === 1) {
         const el = child as Element;
-        if (el.matches(mathSelector)) {
+        if ((formula && el.matches(formula)) || el.matches(mathSelector)) {
           text += placeholder(maths.length);
           maths.push(el);
         } else if (!SKIP_IN_PROSE.has(el.localName) && !(hidden && el.matches(hidden))) walk(el);
@@ -107,7 +116,7 @@ function readParagraph(p: Element, { math: mathSelector, hidden }: SiteProfile):
   };
   walk(p);
   // Wikipedia wraps inline maths in U+2060 word joiners; they must not become "words".
-  return { text: text.replace(/[​-‍⁠﻿]/g, '').replace(/\s+/g, ' '), maths };
+  return { text: text.replace(/[\u200b-\u200d\u2060\ufeff]/g, '').replace(/\s+/g, ' '), maths };
 }
 
 export function extractOccurrences(doc: Document, profile: SiteProfile = LATEXML): Occurrence[] {
@@ -116,11 +125,17 @@ export function extractOccurrences(doc: Document, profile: SiteProfile = LATEXML
   const firstOfMath = new Map<Element, Occurrence>();
 
   const visible = (el: Element): boolean => !profile.hidden || !el.closest(profile.hidden);
-  Array.from(doc.querySelectorAll(profile.math)).filter(visible).forEach((math, mathIndex) => {
+  const containers = profile.formula ? Array.from(doc.querySelectorAll(profile.formula)) : [];
+  const formulas = [...Array.from(doc.querySelectorAll(profile.math)).filter(visible), ...containers];
+  // Keep document order, so "nearest preceding definition" holds when both kinds appear.
+  formulas.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  const isContainer = new Set(containers);
+  formulas.forEach((math, mathIndex) => {
     const mathId = math.id || `math-${mathIndex}`;
     const sectionId = math.closest('section')?.id ?? null;
-    for (const { el, key } of symbolsIn(math)) {
+    for (const { el, key } of symbolsIn(mathmlOf(math))) {
       const occ: Occurrence = { key, order: occurrences.length, mathId, sectionId, el };
+      if (isContainer.has(math)) occ.formula = math;
       occurrences.push(occ);
       if (!firstOfMath.has(math)) firstOfMath.set(math, occ);
     }
@@ -148,7 +163,8 @@ export function extractOccurrences(doc: Document, profile: SiteProfile = LATEXML
           gloss: def.gloss,
           confidence: def.confidence,
           sentence: sentence.replace(/§(\d+)§/g, (_, i: string) => `$${tex(maths[Number(i)]!)}$`),
-          parts: toParts(sentence, maths),
+          // KaTeX/MathJax containers are quoted as their MathML: the popup has no KaTeX styles.
+          parts: toParts(sentence, maths.map(mathmlOf)),
         };
       }
     }

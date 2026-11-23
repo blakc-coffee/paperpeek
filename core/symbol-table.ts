@@ -18,6 +18,8 @@ export interface Occurrence {
   mathId: string;
   sectionId: string | null;
   el: Element;
+  /** The rendered KaTeX/MathJax formula this symbol sits in, when `el` lives in its hidden MathML copy. */
+  formula?: Element;
   definition?: DefinitionInfo;
 }
 
@@ -36,6 +38,8 @@ const PLAUSIBLE = 0.5;
 export class SymbolTable {
   private readonly byKey = new Map<string, Occurrence[]>();
   readonly byElement = new Map<Element, Occurrence>();
+  /** Symbols per rendered KaTeX/MathJax formula, whose glyphs can't be mapped one by one. */
+  readonly byFormula = new Map<Element, Occurrence[]>();
 
   constructor(occurrences: Occurrence[]) {
     for (const occ of [...occurrences].sort((a, b) => a.order - b.order)) {
@@ -43,6 +47,11 @@ export class SymbolTable {
       if (list) list.push(occ);
       else this.byKey.set(occ.key, [occ]);
       this.byElement.set(occ.el, occ);
+      if (occ.formula) {
+        const inFormula = this.byFormula.get(occ.formula);
+        if (inFormula) inFormula.push(occ);
+        else this.byFormula.set(occ.formula, [occ]);
+      }
     }
   }
 

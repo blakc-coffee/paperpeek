@@ -2,7 +2,7 @@
 // page formulas are cloned and stripped of attributes that could run code.
 
 import type { GlossaryEntry } from '../core/glossary';
-import type { LookupResult } from '../core/symbol-table';
+import type { LookupResult, Occurrence } from '../core/symbol-table';
 import { DIAGRAMS } from '../data/glossary/diagrams';
 import { DEMOS } from './demos';
 
@@ -172,6 +172,50 @@ export function renderFigureCard(
   jump.addEventListener('click', () => onJump(figure));
   const badge = sectionLabel(doc, figure.closest('section[id]')?.id ?? null);
   foot.append(jump, el(doc, 'span', 'note', badge ? `§ ${badge}` : 'From this paper'));
+  card.appendChild(foot);
+  return card;
+}
+
+const MAX_FORMULA_ROWS = 8;
+
+export interface FormulaRow {
+  occurrence: Occurrence;
+  result: LookupResult | undefined;
+}
+
+/**
+ * Every symbol of a KaTeX/MathJax formula with the definition that applies there. Those
+ * renderers draw glyphs as styled spans, so the hovered glyph can't be matched to one symbol.
+ */
+export function renderFormulaCard(doc: Document, rows: readonly FormulaRow[], onJump: (target: Element) => void): HTMLElement {
+  const card = el(doc, 'div', 'card is-formula');
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', 'Symbols in this formula');
+  const head = el(doc, 'div', 'head');
+  head.append(el(doc, 'span', 'term', 'Symbols in this formula'), el(doc, 'span', 'badge', String(rows.length)));
+  card.appendChild(head);
+
+  const list = el(doc, 'ul', 'symbols');
+  for (const { occurrence, result } of rows.slice(0, MAX_FORMULA_ROWS)) {
+    const row = el(doc, 'li', 'row');
+    const symbol = el(doc, 'span', 'symbol');
+    symbol.appendChild(mathOf(doc, occurrence.el));
+    const def = result?.occurrence.definition;
+    row.append(symbol, el(doc, 'span', def ? 'gloss-sm' : 'gloss-sm is-missing', def ? def.gloss : 'Not defined in the text'));
+    if (def && result) {
+      const target = result.occurrence.formula ?? result.occurrence.el;
+      const jump = el(doc, 'button', 'jump-sm', result.kind === 'later' ? '↓' : '↑');
+      jump.type = 'button';
+      jump.setAttribute('aria-label', `Jump to the definition: ${def.gloss}`);
+      jump.addEventListener('click', () => onJump(target));
+      row.appendChild(jump);
+    }
+    list.appendChild(row);
+  }
+  card.appendChild(list);
+  const foot = el(doc, 'div', 'foot');
+  const extra = rows.length - MAX_FORMULA_ROWS;
+  foot.appendChild(el(doc, 'span', 'note', extra > 0 ? `+${extra} more · definitions quoted from this page` : 'Definitions quoted from this page'));
   card.appendChild(foot);
   return card;
 }
