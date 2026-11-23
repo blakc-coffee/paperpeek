@@ -2,7 +2,7 @@
 
 **Hover any symbol, AI/ML term or figure in a paper and see what it means, right where you are reading.**
 
-![Hovering d_k in Attention Is All You Need shows "queries and keys of dimension", its section, the defining sentence, and a Jump to definition button](docs/images/real-popup-arxiv.png)
+![Hovering d_k in Attention Is All You Need shows "queries and keys of dimension", its section, the defining sentence, and a Jump to definition button](docs/images/symbol.png)
 
 ## Features
 
@@ -14,8 +14,8 @@
 
 | | |
 |---|---|
-| ![Term popup for multi-head attention with explanation, formula and diagram](docs/images/real-term-arxiv.jpg) | ![Softmax demo with a temperature slider](docs/images/real-demo-softmax.jpg) |
-| ![Figure 2 preview with both attention diagrams and the caption](docs/images/real-figure-arxiv.jpg) | ![Selecting "label smoothing" shows the closest Wikipedia article](docs/images/real-wikipedia-arxiv.jpg) |
+| ![Term popup for multi-head attention with explanation, formula and diagram](docs/images/term.png) | ![Softmax demo with a temperature slider](docs/images/demo-softmax.png) |
+| ![Figure 2 preview with both attention diagrams and the caption](docs/images/figure.png) | ![Selecting "label smoothing" shows the closest Wikipedia article](docs/images/wikipedia.png) |
 
 ## Where it works
 
