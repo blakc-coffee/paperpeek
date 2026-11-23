@@ -43,6 +43,24 @@ describe('symbolsIn', () => {
     ).toEqual(['z']);
   });
 
+  it('reads italic words split by invisible separators as one symbol (LaTeXML "pos")', () => {
+    const sep = '<mo>​</mo>';
+    expect(keys(`<mi>p</mi>${sep}<mi>o</mi>${sep}<mi>s</mi>`)).toEqual(['pos']);
+    expect(keys(`<mi>Q</mi><mo>⁢</mo><mi>K</mi>`)).toEqual(['Q', 'K']);
+  });
+
+  it('strips invisible characters inside subscripts', () => {
+    expect(keys('<msub><mi>d</mi><mrow><mi>f</mi><mo>​</mo><mi>f</mi></mrow></msub>')).toEqual(['d_ff']);
+  });
+
+  it('skips number sets, infinity and non-letters', () => {
+    expect(keys('<mi>W</mi><mo>∈</mo><msup><mi>ℝ</mi><mi>d</mi></msup><mi>…</mi><mi>∞</mi>')).toEqual(['W', 'd']);
+  });
+
+  it('folds negative and fractional powers into the base', () => {
+    expect(keys('<msup><mi>m</mi><mrow><mo>−</mo><mn>0.5</mn></mrow></msup>')).toEqual(['m']);
+  });
+
   it('reads the attention formula in document order', () => {
     const attention =
       '<mrow><mi>Q</mi><msup><mi>K</mi><mi>T</mi></msup></mrow><mo>/</mo>' +

@@ -45,6 +45,30 @@ describe('findDefinitions', () => {
     });
   });
 
+  it('starts the noun phrase after its last determiner and stops at verbs', () => {
+    expect(glosses('as a function of the previous hidden state §0§ and the input.', math('h'))).toEqual({
+      h: ['previous hidden state', 0.5],
+    });
+    expect(glosses('These generate a sequence of hidden states §0§.', math('h_t'))).toEqual({
+      h_t: ['sequence of hidden states', 0.5],
+    });
+    expect(glosses('We employed label smoothing of value §0§.', math('ϵ_ls'))).toEqual({
+      'ϵ_ls': ['label smoothing of value', 0.5],
+    });
+  });
+
+  it('reads "X = <number> <noun phrase>"', () => {
+    const n = { ...math('N'), assigns: true };
+    expect(glosses('The encoder is a stack of §0§ identical layers.', n)).toEqual({ N: ['identical layers', 0.7] });
+  });
+
+  it('drops trailing conjunctions from glosses', () => {
+    expect(glosses('where §0§ is the position and §1§ is the dimension.', math('pos'), math('i'))).toEqual({
+      pos: ['position', 0.9],
+      i: ['dimension', 0.9],
+    });
+  });
+
   it('defines the first symbol of a multi-symbol formula', () => {
     expect(glosses('with projection matrices §0§.', math('W_i^Q', 'd_model', 'd_k'))).toEqual({
       'W_i^Q': ['projection matrices', 0.5],

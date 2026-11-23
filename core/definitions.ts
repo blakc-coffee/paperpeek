@@ -6,6 +6,8 @@
 export interface SentenceMath {
   id: string;
   keys: string[];
+  /** Formula is "X = <number>", as in "a stack of N = 6 identical layers". */
+  assigns?: boolean;
 }
 
 export interface Sentence {
@@ -42,7 +44,8 @@ const AFTER: Array<[RegExp, number, boolean]> = [
     STRONG,
     false,
   ],
-  [new RegExp(`\\b(?:where|and|with|here)\\s+${M}\\s+(?:is|are)\\s+${GLOSS}`, 'gi'), STRONG, true],
+  // Lookbehind so "where a is …, and b is …" matches both: the prefix is not consumed.
+  [new RegExp(`(?<=\\b(?:where|and|with|here)\\s+)${M}\\s+(?:is|are)\\s+${GLOSS}`, 'gi'), STRONG, true],
   [new RegExp(`(?:^|[.!?]\\s+)${M}\\s+(?:is|are)\\s+((?:the|a|an)\\s+[^,;:.§]+)`, 'gi'), MEDIUM, true],
 ];
 const PARTICIPLE = /^\w+ed$/i;
@@ -61,7 +64,11 @@ const STOP = new Set([
   'compute', 'computes', 'computed', 'use', 'uses', 'used', 'using', 'apply', 'applies', 'applied',
   'obtain', 'obtains', 'set', 'sets', 'get', 'gets', 'give', 'gives', 'yield', 'yields',
   'consist', 'consists', 'contain', 'contains', 'take', 'takes', 'multiply', 'divide', 'add',
+  'generate', 'generates', 'produce', 'produces', 'require', 'requires', 'employ', 'employs',
+  'implement', 'implements', 'perform', 'performs', 'project', 'projects', 'considering',
+  'whereas', 'together', 'into', 'onto', 'via',
 ]);
+const DETERMINER = new Set(['the', 'a', 'an']);
 // A noun phrase ending in one of these is not naming the symbol: "the sum of x".
 const DANGLING = new Set(['of', 'to', 'in', 'on', 'for', 'from', 'with', 'over', 'at', 'and', 'or', 'the', 'a', 'an']);
 const MAX_GLOSS_WORDS = 10;
@@ -69,21 +76,41 @@ const MAX_GLOSS_WORDS = 10;
 function clean(raw: string): string {
   const words = raw.replace(TRAILING_CUT, '').trim().split(/\s+/).filter(Boolean);
   while (words.length && LEADING_FILLER.has((words[0] ?? '').toLowerCase())) words.shift();
+  while (words.length && DANGLING.has((words.at(-1) ?? '').toLowerCase())) words.pop();
   return words.slice(0, MAX_GLOSS_WORDS).join(' ');
 }
 
-/** Appositive: up to 5 words right before the symbol, e.g. "queries and keys of dimension d_k". */
+/**
+ * Appositive: the noun phrase right before the symbol, e.g. "queries and keys
+ * of dimension d_k". Scanning backwards stops at punctuation, verbs and
+ * participles; the phrase then starts after its last determiner, so
+ * "a function of the previous hidden state h" yields "previous hidden state".
+ */
 function nounPhraseBefore(text: string, end: number): string {
   const words = text.slice(0, end).trimEnd().split(/\s+/);
   const phrase: string[] = [];
   for (let i = words.length - 1; i >= 0 && phrase.length < 6; i--) {
     const w = words[i];
-    if (!w || /[,;:.!?()§]$/.test(w) || w.includes('§') || STOP.has(w.toLowerCase())) break;
+    const lower = w?.toLowerCase() ?? '';
+    if (!w || /[,;:.!?()§]$/.test(w) || w.includes('§') || STOP.has(lower) || PARTICIPLE.test(w)) break;
     phrase.unshift(w);
   }
   const last = phrase.at(-1);
   if (!last || DANGLING.has(last.toLowerCase())) return '';
-  return clean(phrase.join(' '));
+  const det = phrase.findLastIndex((w) => DETERMINER.has(w.toLowerCase()));
+  return clean(phrase.slice(det + 1).join(' '));
+}
+
+/** "a stack of N = 6 identical layers" → "identical layers". */
+function nounPhraseAfter(text: string, start: number): string {
+  const m = /^\s+([a-z][\w-]*(?:\s+[a-z][\w-]*){0,4})/.exec(text.slice(start));
+  if (!m?.[1]) return '';
+  const words: string[] = [];
+  for (const w of m[1].split(/\s+/)) {
+    if (STOP.has(w) || DANGLING.has(w) || /^(?:each|which|that|times)$/.test(w)) break;
+    words.push(w);
+  }
+  return clean(words.join(' '));
 }
 
 export function findDefinitions(sentence: Sentence): Definition[] {
@@ -109,6 +136,7 @@ export function findDefinitions(sentence: Sentence): Definition[] {
 
   for (const m of sentence.text.matchAll(/§(\d+)§/g)) {
     const index = Number(m[1]);
+    if (sentence.maths[index]?.assigns) offer(index, nounPhraseAfter(sentence.text, m.index + m[0].length), MEDIUM);
     if (!best.has(index)) offer(index, nounPhraseBefore(sentence.text, m.index), WEAK);
   }
 
