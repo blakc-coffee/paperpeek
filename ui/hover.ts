@@ -79,7 +79,7 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
     closeTimer = 0;
   };
   const scheduleClose = (): void => {
-    if (!popup.isOpen || closeTimer) return;
+    if (!popup.isOpen || popup.sticky || closeTimer) return;
     closeTimer = window.setTimeout(() => {
       closeTimer = 0;
       popup.hide();

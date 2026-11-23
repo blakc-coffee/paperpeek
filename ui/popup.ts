@@ -113,6 +113,11 @@ const STYLE = `
 }
 .chip:active { transform: scale(0.98); }
 .chip:focus-visible, .control input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.thumb { float: right; margin: 0 0 8px 12px; max-width: 96px; max-height: 96px; width: auto; height: auto; border-radius: 6px; background: #ffffff; }
+.extract { margin: 4px 0 0; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.foot a { color: var(--accent); }
+.is-wiki .foot { clear: both; flex-wrap: wrap; }
+.skeleton { height: 60px; margin-top: 8px; border-radius: 6px; background: var(--accent-bg); }
 .caption {
   margin-top: 8px; color: var(--fg); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
@@ -126,6 +131,8 @@ export class Popup {
   private anchorRect: DOMRectReadOnly | null = null;
   /** Identity of what the popup is showing (a symbol element or a term hit). */
   anchor: object | null = null;
+  /** Sticky popups (opened from a text selection) ignore pointer movement; Esc, click outside or scroll close them. */
+  sticky = false;
 
   constructor(private readonly doc: Document) {
     this.host = doc.createElement('paperpeek-popup');
@@ -143,9 +150,10 @@ export class Popup {
     return this.anchor !== null;
   }
 
-  show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement): void {
+  show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement, sticky = false): void {
     window.clearTimeout(this.closeTimer);
     this.anchor = anchor;
+    this.sticky = sticky;
     this.anchorRect = anchorRect;
     this.panel.classList.remove('open', 'closing', 'theme-dark', 'theme-light');
     const theme = pageTheme(this.doc);
@@ -155,6 +163,13 @@ export class Popup {
     this.relayout();
     // Next frame so the enter transition runs from the initial state.
     requestAnimationFrame(() => this.panel.classList.add('open'));
+  }
+
+  /** Swap the content of the open card in place (e.g. loading → result) and re-place it. */
+  replace(card: HTMLElement): void {
+    if (!this.anchor) return;
+    this.panel.replaceChildren(card);
+    this.relayout();
   }
 
   /** Re-place the open card against its anchor, e.g. after a demo changed its height. */
