@@ -42,6 +42,8 @@ Then load it in Chrome:
 3. Click **Load unpacked** and select `.output/chrome-mv3`.
 4. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and hover a formula.
 
+To check your changes, run `pnpm test` for the unit tests. `pnpm e2e` loads the build into headless Chrome and checks it on a real arXiv paper.
+
 ## Privacy
 
 - No account, telemetry, server or AI model; everything runs in your browser.

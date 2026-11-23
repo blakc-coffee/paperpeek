@@ -21,7 +21,8 @@
     "lint:ext": "web-ext lint -s .output/firefox-mv3",
     "postinstall": "wxt prepare",
     "glossary": "node --experimental-strip-types --no-warnings scripts/build-glossary.ts > data/glossary/generated.json",
-    "eval:symdef": "node --experimental-strip-types --no-warnings scripts/eval-symdef.ts"
+    "eval:symdef": "node --experimental-strip-types --no-warnings scripts/eval-symdef.ts",
+    "e2e": "pnpm build && node scripts/e2e.mjs"
   },
   "devDependencies": {
     "happy-dom": "^21.0.4",
