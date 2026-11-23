@@ -1,0 +1,26 @@
+{
+  "name": "mathlens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Hover any math symbol or ML term in a paper to see its definition, diagrams, figures and demos.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "wxt": "0.21.5"
+  }
+}
