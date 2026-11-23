@@ -8,6 +8,47 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 - **AI/ML terms** — hover "multi-head attention" and get a short explanation, its formula, a diagram, and (for some terms) a mini demo such as a softmax-temperature slider.
 - **Figures** — hover "Figure 2" and see the figure with its caption without losing your place.
 
+## What it looks like
+
+> Design mockups of the planned popups — the extension is in early development (see [Status](#status)).
+
+**Hover a symbol** → its definition, quoted from the paper, with a jump link:
+
+![Hovering d_k in "Attention Is All You Need" shows "dimension of queries and keys", the defining sentence from §3.2.1, and a jump-to-definition link](docs/images/symbol-popup.svg)
+
+**Hover an AI/ML term** → plain-language explanation, formula, and a mini demo:
+
+![Hovering "softmax" shows a one-line explanation, its formula, and a temperature slider with a bar chart of probabilities](docs/images/term-popup.svg)
+
+## Examples
+
+What PaperPeek shows when you hover these on [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) (*Attention Is All You Need*):
+
+| You hover | Kind | Popup shows |
+|---|---|---|
+| `d_k` in the attention formula | Symbol | "dimension of queries and keys" · the sentence that introduced it (§3.2.1) · jump link |
+| `W_i^Q` in multi-head attention | Symbol | "projection matrix for queries, head *i*" · its shape `d_model × d_k` as written in the paper |
+| `h` | Symbol | "number of parallel attention heads" · the value used in the paper (8) |
+| "multi-head attention" | AI/ML term | short explanation · formula · diagram of heads being concatenated |
+| "softmax" | AI/ML term | explanation · formula · temperature slider demo |
+| "Figure 2" | Figure | the figure image and its caption, inline |
+| "label smoothing" (not in the bundled glossary) | AI/ML term | Wikipedia summary + thumbnail, with CC BY-SA credit (opt-in) |
+
+## How it works
+
+```mermaid
+flowchart LR
+  P["Paper page<br/>(arXiv HTML, Wikipedia,<br/>KaTeX/MathJax blogs)"] --> A["Site adapter<br/>reads math + LaTeX"]
+  A --> S["Symbol table<br/>nearest preceding definition"]
+  A --> T["Term matcher<br/>bundled glossary"]
+  S --> U["Hover popup"]
+  T --> U
+  T -. "unknown term only (opt-in)" .-> W[("Wikipedia")]
+  W -.-> U
+```
+
+Everything runs in your browser. arXiv's HTML papers already contain each formula's LaTeX, so no OCR or AI model is needed. Full design and research: [`docs/architecture.md`](docs/architecture.md).
+
 ## Principles
 
 - **Local-first & private.** No account, no telemetry, no AI model, no server. The only network call is an opt-in Wikipedia lookup for unknown terms, which sends just the term.
@@ -24,7 +65,16 @@ Reading ML papers means constantly scrolling back to find where `𝓛`, `W^Q` or
 
 ## Status
 
-🚧 **Planning stage — no code yet.** See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+🚧 **Early development.** The extension skeleton builds for Chrome and Firefox and runs on arXiv HTML pages; popups arrive in v0.2. See [`docs/architecture.md`](docs/architecture.md) for the research, the architecture decision, and the milestone roadmap (v0.0 → v1.0).
+
+### Try the current build
+
+```powershell
+pnpm install
+pnpm build
+```
+
+Chrome → `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. Open [arxiv.org/html/1706.03762](https://arxiv.org/html/1706.03762) and the DevTools console shows `[PaperPeek] … formulas, … figures on this page`.
 
 ## Roadmap
 
