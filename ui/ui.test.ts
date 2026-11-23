@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest';
 import { SymbolTable, type Occurrence } from '../core/symbol-table';
-import { renderCard, sectionLabel } from './card';
-import { occurrenceAt } from './hover';
+import { figureLabel, renderCard, renderFigureCard, sectionLabel } from './card';
+import { figureRefAt, occurrenceAt } from './hover';
 import { place } from './place';
 
 const VIEW = { width: 1280, height: 800 };
@@ -90,5 +90,71 @@ describe('occurrenceAt', () => {
     expect(occurrenceAt(table, dk.querySelector('mi'))).toBe(defined);
     expect(occurrenceAt(table, q)).toBeUndefined();
     expect(occurrenceAt(table, document.body)).toBeUndefined();
+  });
+});
+
+function figures() {
+  document.body.innerHTML = `
+    <section id="S3"><h2 class="ltx_title">3 Model Architecture</h2>
+      <p>As shown in <a class="ltx_ref" href="#S3.F2"><span class="ltx_ref_tag">2</span></a>, and
+        <a class="ltx_ref" href="#S4.T1">1</a>, see <a class="ltx_ref" href="#S9">9</a>.</p>
+      <figure id="S3.F2" class="ltx_figure">
+        <img src="1706.03762v7/Figures/a.png" width="267" height="531" alt="Refer to caption">
+        <img src="javascript:alert(1)" width="10" height="10">
+        <figcaption><span class="ltx_tag ltx_tag_figure">Figure 2: </span>(left) Scaled <math><mi>x</mi></math> attention.</figcaption>
+      </figure>
+    </section>
+    <section id="S4">
+      <figure id="S4.T1" class="ltx_table">
+        <figcaption><span class="ltx_tag">Table 1: </span>Path lengths.</figcaption>
+        <table onclick="alert(1)"><tr><td style="color:red">Self-Attention</td><td><img src="x.png"></td></tr></table>
+      </figure>
+      <p>Back to <a class="ltx_ref" href="#S3.F2">2</a>.</p>
+    </section>`;
+  const refs = Array.from(document.querySelectorAll('a.ltx_ref'));
+  return { refs, fig: document.getElementById('S3.F2')!, tab: document.getElementById('S4.T1')! };
+}
+
+describe('figureRefAt', () => {
+  it('resolves links to figures and tables, ignoring section refs', () => {
+    const { refs, fig, tab } = figures();
+    expect(figureRefAt(document, refs[0]!.firstElementChild)).toEqual({ ref: refs[0], figure: fig });
+    expect(figureRefAt(document, refs[1]!)?.figure).toBe(tab);
+    expect(figureRefAt(document, refs[2]!)).toBeUndefined();
+    expect(figureRefAt(document, document.body)).toBeUndefined();
+  });
+});
+
+describe('renderFigureCard', () => {
+  it('shows the figure images with absolute http(s) URLs, the caption, and a jump', () => {
+    const { refs, fig } = figures();
+    const onJump = vi.fn();
+    const card = renderFigureCard(document, refs[0]!, fig, onJump);
+    const imgs = Array.from(card.querySelectorAll('img'));
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]!.src).toMatch(/^https?:\/\/.*\/1706\.03762v7\/Figures\/a\.png$/);
+    expect([imgs[0]!.width, imgs[0]!.height, imgs[0]!.alt]).toEqual([267, 531, '']);
+    expect(card.querySelector('.caption')?.textContent?.trim()).toBe('(left) Scaled x attention.');
+    expect(card.querySelectorAll('.caption math')).toHaveLength(1);
+    const jump = card.querySelector('.jump') as HTMLButtonElement;
+    expect(jump.textContent).toBe('↓ Jump to Figure 2');
+    expect(card.querySelector('.note')?.textContent).toBe('§ 3 Model Architecture');
+    jump.click();
+    expect(onJump).toHaveBeenCalledWith(fig);
+  });
+
+  it('points up when the figure comes before the reference', () => {
+    const { refs, fig } = figures();
+    expect(renderFigureCard(document, refs[3]!, fig, () => {}).querySelector('.jump')?.textContent).toBe(
+      '↑ Jump to Figure 2',
+    );
+  });
+
+  it('clones tables without handlers, styles or images', () => {
+    const { refs, tab } = figures();
+    const card = renderFigureCard(document, refs[1]!, tab, () => {});
+    expect(figureLabel(tab)).toBe('Table 1');
+    expect(card.querySelector('.media table')?.textContent).toContain('Self-Attention');
+    expect(card.querySelector('[onclick], [style], img')).toBeNull();
   });
 });
