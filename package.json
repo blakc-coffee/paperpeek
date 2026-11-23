@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint:ext": "web-ext lint -s .output/firefox-mv3",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "glossary": "node --experimental-strip-types --no-warnings scripts/build-glossary.ts > data/glossary/generated.json"
   },
   "devDependencies": {
     "happy-dom": "^21.0.4",

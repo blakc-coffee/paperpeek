@@ -213,7 +213,16 @@ export function renderTermCard(doc: Document, entry: GlossaryEntry, onResize: ()
     });
     foot.appendChild(toggle);
   }
-  foot.appendChild(el(doc, 'span', 'note', 'PaperPeek glossary · CC BY 4.0'));
+  const credit = `${entry.source ?? 'PaperPeek glossary'} · ${entry.license ?? 'CC BY 4.0'}`;
+  if (entry.url?.startsWith('https://')) {
+    const link = el(doc, 'a', 'note', credit);
+    link.href = entry.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    foot.appendChild(link);
+  } else {
+    foot.appendChild(el(doc, 'span', 'note', credit));
+  }
   card.appendChild(foot);
   return card;
 }
