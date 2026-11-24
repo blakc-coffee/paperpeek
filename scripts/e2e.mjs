@@ -57,6 +57,13 @@ const check = (ok, label) => {
 
 try {
   const { id: extensionId } = await send('Extensions.loadUnpacked', { path: extension });
+  // First install opens the welcome page in a new tab; check it, then close it so it can't take focus.
+  await sleep(1500);
+  const { targetInfos } = await send('Target.getTargets');
+  const welcome = targetInfos.find((t) => t.url === `chrome-extension://${extensionId}/welcome.html`);
+  check(Boolean(welcome), 'first install opens the welcome page');
+  if (welcome) await send('Target.closeTarget', { targetId: welcome.targetId });
+
   const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
   await send('Runtime.enable', {}, sessionId);
@@ -79,6 +86,8 @@ try {
     returnByValue: true,
   }, sessionId);
   await sleep(300);
+  // Hover logic runs on requestAnimationFrame, which background tabs pause.
+  await send('Page.bringToFront', {}, sessionId);
   await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.value.x, y: point.value.y }, sessionId);
   await sleep(800);
   const { nodes } = await send('Accessibility.getFullAXTree', {}, sessionId);
