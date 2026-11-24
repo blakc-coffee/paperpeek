@@ -18,6 +18,8 @@ export interface LookupDeps {
 }
 
 const MAX_WORDS = 5;
+/** Pause after the last Shift+Arrow before a keyboard selection is looked up. */
+const KEY_SETTLE_MS = 400;
 
 /** The selected phrase if it is worth looking up: 3–60 characters, ≤ 5 words, some letters, not inside a formula. */
 export function lookupText(selection: Selection | null): string | null {
@@ -66,16 +68,32 @@ export function attachLookup(doc: Document, deps: LookupDeps): () => void {
     else popup.show(anchor, rect, renderWikiCard(doc, { s: 'ask', term, onLookup: () => void fetchInto() }), true);
   };
 
+  const lookupSelection = (): void => {
+    const selection = doc.getSelection();
+    const term = lookupText(selection);
+    if (term && selection) void show(term, selection.getRangeAt(0));
+  };
+
   const onUp = (e: PointerEvent): void => {
     if (e.button !== 0 || e.composedPath().includes(popup.host)) return;
     // Let the browser finish updating the selection (double-click selects a word on pointerup).
-    window.setTimeout(() => {
-      const selection = doc.getSelection();
-      const term = lookupText(selection);
-      if (term && selection) void show(term, selection.getRangeAt(0));
-    }, 0);
+    window.setTimeout(lookupSelection, 0);
+  };
+
+  // Keyboard selection: Shift+Arrow/Home/End/PageUp/PageDown extend it one step at a time,
+  // so look up only once the reader pauses instead of on every keystroke.
+  let keyTimer = 0;
+  const onKeyUp = (e: KeyboardEvent): void => {
+    if (!e.shiftKey || !/^(?:Arrow\w+|Home|End|PageUp|PageDown)$/.test(e.key)) return;
+    window.clearTimeout(keyTimer);
+    keyTimer = window.setTimeout(lookupSelection, KEY_SETTLE_MS);
   };
 
   doc.addEventListener('pointerup', onUp);
-  return () => doc.removeEventListener('pointerup', onUp);
+  doc.addEventListener('keyup', onKeyUp);
+  return () => {
+    window.clearTimeout(keyTimer);
+    doc.removeEventListener('pointerup', onUp);
+    doc.removeEventListener('keyup', onKeyUp);
+  };
 }

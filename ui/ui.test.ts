@@ -4,10 +4,11 @@ import { SymbolTable, type Occurrence } from '../core/symbol-table';
 import { compileMatcher } from '../core/glossary';
 import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
 import { DEMOS } from './demos';
-import { glossaryEntryFor, lookupText } from './lookup';
+import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
+import type { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
-import { figureRefAt, occurrenceAt } from './hover';
+import { attachHover, caretPoint, figureRefAt, occurrenceAt } from './hover';
 import { place } from './place';
 
 const VIEW = { width: 1280, height: 800 };
@@ -319,5 +320,73 @@ describe('renderWikiCard', () => {
     const retry = vi.fn();
     (renderWikiCard(document, { s: 'error', term: 't', retry }).querySelector('button') as HTMLButtonElement).click();
     expect(retry).toHaveBeenCalledOnce();
+  });
+});
+
+describe('keyboard selection lookup', () => {
+  it('looks up a Shift+Arrow selection once the reader pauses', () => {
+    vi.useFakeTimers();
+    try {
+      document.body.innerHTML = '<p>We apply <b>dropout</b> here.</p>';
+      const show = vi.fn();
+      const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null });
+      const range = document.createRange();
+      range.selectNodeContents(document.querySelector('b')!);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', shiftKey: true }));
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', shiftKey: true }));
+      vi.advanceTimersByTime(399);
+      expect(show).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(show).toHaveBeenCalledTimes(1);
+      expect((show.mock.calls[0]![2] as HTMLElement).querySelector('.term')?.textContent).toBe('dropout');
+
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
+      vi.advanceTimersByTime(1000);
+      expect(show).toHaveBeenCalledTimes(1);
+      detach();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('Alt+Shift+P', () => {
+  const press = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', code: 'KeyP', altKey: true, shiftKey: true }));
+  const select = (el: Node) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    document.getSelection()!.removeAllRanges();
+    document.getSelection()!.addRange(range);
+  };
+
+  it('opens a sticky popup for the symbol at the caret', () => {
+    const { dk, defined } = fixture();
+    const show = vi.fn();
+    const popup = { host: document.createElement('div'), show, hide: vi.fn(), jumpTo: vi.fn(), relayout: vi.fn(), anchor: null, isOpen: false, sticky: false } as unknown as Popup;
+    const terms = new TermIndex(document, [], compileMatcher(GLOSSARY));
+    const detach = attachHover(document, { table: new SymbolTable([defined]), terms }, popup);
+    select(dk.querySelector('mi')!);
+    expect(caretPoint(document)?.target).toBe(dk.querySelector('mi'));
+    press();
+    expect(show).toHaveBeenCalledTimes(1);
+    expect(show.mock.calls[0]![0]).toBe(dk);
+    expect((show.mock.calls[0]![2] as HTMLElement).querySelector('.gloss')?.textContent).toBe('dimension of the keys');
+    expect(show.mock.calls[0]![3]).toBe(true);
+    detach();
+  });
+
+  it('does nothing when the caret is on plain text', () => {
+    document.body.innerHTML = '<p id="t">plain words</p>';
+    const show = vi.fn();
+    const popup = { host: document.createElement('div'), show, hide: vi.fn(), anchor: null, isOpen: false, sticky: false } as unknown as Popup;
+    const detach = attachHover(document, { table: new SymbolTable([]), terms: new TermIndex(document, [], compileMatcher(GLOSSARY)) }, popup);
+    select(document.getElementById('t')!);
+    press();
+    expect(show).not.toHaveBeenCalled();
+    detach();
   });
 });

@@ -42,6 +42,19 @@ interface Hit {
   card: () => HTMLElement | undefined;
 }
 
+/** The element and viewport point at the start of the current selection or caret, if any. */
+export function caretPoint(doc: Document): { target: Element; x: number; y: number } | undefined {
+  const selection = doc.getSelection();
+  if (!selection?.rangeCount) return undefined;
+  const range = selection.getRangeAt(0);
+  const node = range.startContainer;
+  const target = node instanceof Element ? node : node.parentElement;
+  if (!target) return undefined;
+  // A collapsed caret has no box of its own; fall back to its element's box.
+  const rect = range.getClientRects()[0] ?? target.getBoundingClientRect();
+  return { target, x: rect.left + Math.min(2, rect.width / 2), y: rect.top + rect.height / 2 };
+}
+
 function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, target: EventTarget | null, x: number, y: number): Hit | undefined {
   const jump = (to: Element): void => popup.jumpTo(to);
   const occ = occurrenceAt(table, target);
@@ -133,6 +146,17 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
 
   const onKey = (e: KeyboardEvent): void => {
     if (e.key === 'Escape' && popup.isOpen) popup.hide();
+    // Alt+Shift+P: explain whatever sits at the text caret or selection (keyboard and caret-browsing users).
+    if (e.altKey && e.shiftKey && e.code === 'KeyP') {
+      const at = caretPoint(doc);
+      const hit = at && hitAt(doc, sources, popup, at.target, at.x, at.y);
+      const card = hit?.card();
+      if (!hit || !card) return;
+      e.preventDefault();
+      cancelOpen();
+      keepOpen();
+      popup.show(hit.anchor, hit.rect(), card, true);
+    }
   };
 
   const onDown = (e: PointerEvent): void => {
