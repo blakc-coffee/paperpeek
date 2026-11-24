@@ -5,6 +5,10 @@ export default defineBackground(() => {
   const resync = serialSync(browser as unknown as RegistrationApi, (error) => console.error('[PaperPeek] sync failed', error));
   const run = (): void => void resync();
   browser.runtime.onInstalled.addListener(run);
+  // First install only (not updates): show how to use it.
+  browser.runtime.onInstalled.addListener(({ reason }) => {
+    if (reason === 'install') void browser.tabs.create({ url: browser.runtime.getURL('/welcome.html') });
+  });
   browser.runtime.onStartup.addListener(run);
   browser.permissions.onAdded.addListener(run);
   browser.permissions.onRemoved.addListener(run);
