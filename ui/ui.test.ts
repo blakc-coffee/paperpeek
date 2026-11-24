@@ -8,8 +8,8 @@ import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
 import { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
-import { attachHover, caretPoint, figureRefAt, formulaAt, occurrenceAt } from './hover';
-import { renderFormulaCard } from './card';
+import { attachHover, caretPoint, crossRefAt, figureRefAt, formulaAt, occurrenceAt } from './hover';
+import { renderCitationCard, renderEquationCard, renderFormulaCard } from './card';
 import { extractOccurrences, GENERIC } from '../adapters/arxiv-html';
 import { place } from './place';
 
@@ -638,5 +638,58 @@ describe('Firefox consent card', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('equation and citation previews', () => {
+  function page() {
+    document.body.innerHTML = `
+      <section id="S2"><h2 class="ltx_title">2 Method</h2>
+        <p class="ltx_p">As in Eq. <a class="ltx_ref" href="#S2.E1">1</a> and prior work <a class="ltx_ref" href="#bib.bib13">13</a>,
+          see also <a class="ltx_ref" href="#bib.bib7">7</a>.</p>
+        <table id="S2.E1" class="ltx_equation ltx_eqn_table"><tr><td><math onclick="x()"><mi>h</mi><mo>=</mo><mi>W</mi><mi>x</mi></math></td>
+          <td><span class="ltx_tag ltx_tag_equation">(1)</span></td></tr></table>
+      </section>
+      <section id="bib"><ul>
+        <li id="bib.bib7" class="ltx_bibitem"><span class="ltx_tag ltx_tag_bibitem">[7]</span>
+          <span class="ltx_bibblock">Ashish Vaswani et al.</span>
+          <span class="ltx_bibblock">Attention is all you need. arXiv:1706.03762, 2017.</span></li>
+        <li id="bib.bib13" class="ltx_bibitem"><span class="ltx_tag ltx_tag_bibitem">[13]</span>
+          <span class="ltx_bibblock">Sepp Hochreiter and Jürgen Schmidhuber.</span>
+          <span class="ltx_bibblock">Long short-term memory.</span></li>
+      </ul></section>`;
+    const refs = Array.from(document.querySelectorAll('a.ltx_ref'));
+    return { eqRef: refs[0]!, bibRef: refs[1]!, arxivRef: refs[2]! };
+  }
+
+  it('resolves links to equations and bibliography entries by kind', () => {
+    const { eqRef, bibRef } = page();
+    expect(crossRefAt(document, eqRef)?.kind).toBe('equation');
+    expect(crossRefAt(document, bibRef)?.kind).toBe('citation');
+    expect(figureRefAt(document, eqRef)).toBeUndefined();
+  });
+
+  it('shows the equation MathML without page handlers, labelled by its number', () => {
+    const { eqRef } = page();
+    const eq = document.getElementById('S2.E1')!;
+    const onJump = vi.fn();
+    const card = renderEquationCard(document, eqRef, eq, onJump);
+    expect(card.querySelector('.term')?.textContent).toBe('Equation (1)');
+    expect(card.querySelectorAll('.equation math')).toHaveLength(1);
+    expect(card.querySelector('[onclick]')).toBeNull();
+    (card.querySelector('.jump') as HTMLButtonElement).click();
+    expect(onJump).toHaveBeenCalledWith(eq);
+    expect(card.querySelector('.jump')?.textContent).toBe('↓ Jump to Equation (1)');
+  });
+
+  it('shows the reference text, and an arXiv link only when the entry names one', () => {
+    const { bibRef, arxivRef } = page();
+    const plain = renderCitationCard(document, bibRef, document.getElementById('bib.bib13')!, () => {});
+    expect(plain.querySelector('.term')?.textContent).toBe('Reference [13]');
+    expect(plain.querySelector('.extract')?.textContent).toBe('Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory.');
+    expect(plain.querySelector('a')).toBeNull();
+    const withArxiv = renderCitationCard(document, arxivRef, document.getElementById('bib.bib7')!, () => {});
+    const a = withArxiv.querySelector('a')!;
+    expect([a.href, a.rel]).toEqual(['https://arxiv.org/abs/1706.03762', 'noopener noreferrer']);
   });
 });
