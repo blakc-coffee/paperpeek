@@ -8,12 +8,14 @@
 
 ## Features
 
-- **Symbols.** Hover `d_k` to see the sentence that defined it, its section, and a jump link. When a symbol is redefined, you get the definition that applies at your position.
+- **Symbols.** Hover `d_k` to see the sentence that defined it, its section, and a jump link. When a symbol is redefined, you get the definition that applies at your position. **Show all uses** highlights every place it appears.
 - **AI/ML terms.** Key terms are underlined. Hover one for a plain explanation, the formula, and a diagram.
 - **Interactive demos.** Some terms have a **▶ Try it** button: softmax temperature, activation functions, a toy attention heatmap, gradient descent, dropout, and next-token sampling (temperature, top-k, top-p).
-- **Figures and tables.** Hover a "Figure 2" or "Table 1" reference to preview it without scrolling away.
+- **Figures, tables, equations and citations.** Hover a "Figure 2", "Table 1", equation or citation reference to preview it without scrolling away.
+- **Symbol list.** The side panel lists every symbol on the page with its meaning, grouped by section and searchable. Click one to jump to it.
 - **Look anything up.** Select a word or phrase. A bundled glossary of 459 terms answers offline. For anything else you can do an opt-in Wikipedia lookup, which sends only that term.
 - **Keyboard.** Select text with Shift+arrow keys to look it up, or press **Alt+Shift+P** to explain the symbol, figure reference or term at the caret.
+- **Report a wrong definition.** Each symbol popup links to a pre-filled GitHub issue.
 
 | | |
 |---|---|
