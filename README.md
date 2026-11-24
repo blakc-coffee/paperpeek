@@ -12,7 +12,7 @@
 - **AI/ML terms.** Key terms are underlined. Hover one for a plain explanation, the formula, and a diagram.
 - **Interactive demos.** Some terms have a **▶ Try it** button: softmax temperature, activation functions, a toy attention heatmap, gradient descent, and dropout.
 - **Figures and tables.** Hover a "Figure 2" or "Table 1" reference to preview it without scrolling away.
-- **Look anything up.** Select a word or phrase. A bundled glossary of about 436 terms answers offline. For anything else you can do an opt-in Wikipedia lookup, which sends only that term.
+- **Look anything up.** Select a word or phrase. A bundled glossary of 435 terms answers offline. For anything else you can do an opt-in Wikipedia lookup, which sends only that term.
 - **Keyboard.** Select text with Shift+arrow keys to look it up, or press **Alt+Shift+P** to explain the symbol, figure reference or term at the caret.
 
 | | |
