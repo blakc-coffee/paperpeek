@@ -1,0 +1,56 @@
+name: Submit to stores
+
+# Manual only: builds the zips and submits them to the Chrome Web Store and Firefox Add-ons
+# with `wxt submit` (publish-browser-extension). Starts as a dry run, which only checks the
+# credentials. Chrome uses STAGED_PUBLISH: after review it waits for a manual "Publish" click.
+#
+# Repository secrets needed:
+#   CHROME_EXTENSION_ID, CHROME_PUBLISHER_ID,
+#   CHROME_SERVICE_ACCOUNT_EMAIL, CHROME_SERVICE_ACCOUNT_KEY   (Chrome Web Store API v2)
+#   FIREFOX_EXTENSION_ID, FIREFOX_JWT_ISSUER, FIREFOX_JWT_SECRET (AMO API key)
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only check the store credentials; upload nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      # zip:firefox also writes the sources zip AMO asks for when code is bundled.
+      - run: pnpm zip && pnpm zip:firefox
+      - name: Submit
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          # A bare flag: passing "--dry-run false" could be read as a truthy string.
+          dry=()
+          if [ "$DRY_RUN" = "true" ]; then dry=(--dry-run); fi
+          pnpm wxt submit "${dry[@]}" \
+            --chrome-zip .output/*-chrome.zip \
+            --chrome-api-version v2 \
+            --chrome-extension-id "${{ secrets.CHROME_EXTENSION_ID }}" \
+            --chrome-publisher-id "${{ secrets.CHROME_PUBLISHER_ID }}" \
+            --chrome-service-account-client-email "${{ secrets.CHROME_SERVICE_ACCOUNT_EMAIL }}" \
+            --chrome-service-account-private-key "${{ secrets.CHROME_SERVICE_ACCOUNT_KEY }}" \
+            --chrome-publish-type STAGED_PUBLISH \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip \
+            --firefox-extension-id "${{ secrets.FIREFOX_EXTENSION_ID }}" \
+            --firefox-jwt-issuer "${{ secrets.FIREFOX_JWT_ISSUER }}" \
+            --firefox-jwt-secret "${{ secrets.FIREFOX_JWT_SECRET }}"

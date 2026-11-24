@@ -79,3 +79,15 @@ The Firefox manifest declares:
    - Add the five screenshots and the 128 px icon (`public/icon/128.png`).
 3. Firefox: on addons.mozilla.org, submit a new add-on and upload the Firefox zip.
    - AMO may ask for the source zip (`pnpm zip:firefox` makes one), because the code is bundled.
+
+### Later versions: the "Submit to stores" workflow
+
+The first submission is manual because the store items must exist first. After that, run **Actions → Submit to stores** (`.github/workflows/submit.yml`):
+
+1. Add the repository secrets:
+   - Chrome Web Store API v2: `CHROME_EXTENSION_ID`, `CHROME_PUBLISHER_ID`, `CHROME_SERVICE_ACCOUNT_EMAIL`, `CHROME_SERVICE_ACCOUNT_KEY`.
+   - Firefox (AMO API key): `FIREFOX_EXTENSION_ID`, `FIREFOX_JWT_ISSUER`, `FIREFOX_JWT_SECRET`.
+2. Run it once with **dry run** ticked (the default). This only checks the credentials.
+3. Run it again with dry run unticked. It tests and zips, then uploads to both stores and submits for review.
+   - Chrome uses `STAGED_PUBLISH`, so after approval the update waits for you to press **Publish** in the dashboard.
+   - Firefox is submitted to the listed channel, with the sources zip attached.

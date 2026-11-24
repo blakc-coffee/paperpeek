@@ -196,3 +196,53 @@ The `resolver.ts` maps alphaXiv, HF Papers, OpenReview, ACL and arxiv/pdf pages 
 - `pnpm build && npx web-ext lint`.
 - Manual: load the unpacked extension in Chrome and Firefox and walk through the "Done when" column on the named pages.
 - Performance: Chrome Task Manager memory under 30 MB per tab; the DevTools Performance setup pass under 150 ms.
+
+---
+
+## 7. As built (24 Nov 2026)
+
+The sections above are the plan as approved. This section records what shipped and where it differs.
+
+### Where the code lives
+
+| Plan | Built | Why it changed |
+|---|---|---|
+| `src/core/tex-tokens.ts` (tokenise LaTeX) | `core/symbol-key.ts` reads **Presentation MathML** | arXiv, Wikipedia, KaTeX and MathJax all expose MathML, so there was no need to parse LaTeX. LaTeX is kept only for display and for "N = 6" detection. |
+| `src/core/term-matcher.ts` | `core/glossary.ts` | One longest-first regex alternation, as planned. It compiles all 459 terms in about 1.3 ms, so Aho–Corasick is still unnecessary. |
+| One adapter per site (`katex`, `wikipedia`, `mathjax2`, …) behind an interface | **Site profiles** in `adapters/arxiv-html.ts` | `LATEXML`, `WIKIPEDIA` and `GENERIC` differ only in selectors and where the LaTeX lives. A `formula` field covers KaTeX/MathJax containers, so three small data objects replaced five classes. |
+| MathJax v3/v4 via a `world:'MAIN'` bridge | Read MathJax's hidden assistive MathML | Same data, no main-world script needed. |
+| Clicking pins a popup | Popups from a text selection or Alt+Shift+P are **sticky** | Hovering stays light; pinning happens when the reader shows intent. |
+| `data/glossary/adictml.json` + `wikidata.json` | One `data/glossary/generated.json` with `source`/`license`/`url` on every entry | One file to bundle and diff. The license is still tracked per entry. |
+| `symbols.json` (≈80 notation conventions) | Not built | Definitions found in the paper itself covered the need. Generic notation lives in the glossary instead. |
+| Popup module lazy-loaded | Bundled with the content script | Setup is 39–61 ms and about 1 MB of heap per tab (`docs/performance.md`), so lazy loading would save little. |
+
+### What was added beyond the plan
+
+- **Formula cards** for KaTeX/MathJax: the whole formula is the hover target, listing each symbol with its definition.
+- **Keyboard access:** Shift+Arrow selections are looked up, Alt+Shift+P explains what is at the caret, and keyboard-opened popups take focus and return it on Esc.
+- **Per-site opt-in:**
+  - The toolbar popup grants one origin at a time.
+  - The background script keeps exactly one runtime-registered content script (`core/site-sync.ts`).
+  - The options page lists the granted sites with Remove buttons.
+- **Firefox data-collection consent** (optional `searchTerms`) before any Wikipedia lookup.
+- **Measured quality:** the SymDef evaluation (`pnpm eval:symdef`, `docs/eval.md`). Trusted definitions reach 87.8% precision.
+- **End-to-end test:** `pnpm e2e` loads the real build into headless Chrome over the DevTools pipe. It checks arXiv, the abstract-page link and the options page, reading the closed shadow root through the accessibility tree.
+- **Store automation:** a manual "Submit to stores" workflow (`wxt submit`, Chrome `STAGED_PUBLISH`, a dry run by default).
+
+### Budget check
+
+| Target (section 3) | Measured |
+|---|---|
+| < 30 MB extra per tab | ≈ 1 MB of JS heap, 7 DOM nodes |
+| Setup < 150 ms on a 30-page paper | 39–61 ms (arXiv *Attention*, *LoRA*; Wikipedia *Softmax*) |
+| Content script ≈ 10 KB + glossary 300–800 KB | ≈ 165 kB total, about 106 kB of it glossary data |
+| $5 one-time cost | Unchanged |
+
+### Still open
+
+- **PDF support:** a bundled pdf.js viewer, opt-in, after 1.0.
+- **One symbol at a time on KaTeX/MathJax:** the rendered spans carry no per-symbol structure.
+- **Definitions that span sentences.** SymDef only annotates within a sentence, so these can't be measured yet.
+- **Manual checks before submission:**
+  - the toolbar "Enable on this site" flow in an installed build;
+  - Firefox's `searchTerms` consent prompt.
