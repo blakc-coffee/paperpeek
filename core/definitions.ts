@@ -30,6 +30,7 @@ const GLOSS = '([^,;:.§]+)';
 const STRONG = 0.9;
 const MEDIUM = 0.7;
 const WEAK = 0.5;
+const GUESS = 0.4;
 
 // Gloss follows the symbol: "where d_k is the dimension of the keys".
 // The third field marks "X is/are …" patterns, where a past participle
@@ -46,9 +47,20 @@ const AFTER: Array<[RegExp, number, boolean]> = [
   ],
   // Lookbehind so "where a is …, and b is …" matches both: the prefix is not consumed.
   [new RegExp(`(?<=\\b(?:where|and|with|here)\\s+)${M}\\s+(?:is|are)\\s+${GLOSS}`, 'gi'), STRONG, true],
+  // Later items of a "where" list: "where W is a matrix, V is the vocabulary size".
+  [new RegExp(`(?<=,\\s*)${M}\\s+(?:is|are)\\s+((?:the|a|an)\\s+[^,;:.§]+)`, 'gi'), MEDIUM, true],
   [new RegExp(`(?:^|[.!?]\\s+)${M}\\s+(?:is|are)\\s+((?:the|a|an)\\s+[^,;:.§]+)`, 'gi'), MEDIUM, true],
 ];
 const PARTICIPLE = /^\w+ed$/i;
+
+// Coordinated symbols share one gloss: "where a, b, and c are trainable parameters".
+const LIST = new RegExp(
+  `(?:\\b(where|and|with|here)\\s+)?((?:§\\d+§\\s*,\\s*)+(?:and\\s+)?§\\d+§|§\\d+§\\s+and\\s+§\\d+§)\\s+are\\s+${GLOSS}`,
+  'gi',
+);
+
+// "a mini-batch of N examples", "move it by k frames": the symbol counts the noun after it.
+const COUNT = new RegExp(`(?<=\\b(?:of|by|with|over|for|uses?|has|have|contains?)\\s+)${M}\\s+([a-z]+s)\\b(?!\\s+(?:of|is|are)\\b)`, 'g');
 
 // Gloss precedes the symbol: "we denote the number of layers by N".
 const BEFORE = new RegExp(`\\bdenoted?\\s+(?:the\\s+)?([^,;:.§]+?)\\s+(?:by|as)\\s+${M}`, 'gi');
@@ -135,6 +147,16 @@ export function findDefinitions(sentence: Sentence): Definition[] {
     }
   }
   for (const m of sentence.text.matchAll(BEFORE)) offer(Number(m[2]), clean(m[1] ?? ''), STRONG);
+  for (const m of sentence.text.matchAll(LIST)) {
+    const raw = m[3] ?? '';
+    if (PARTICIPLE.test(raw.trim().split(/\s+/)[0] ?? '')) continue;
+    const gloss = clean(raw);
+    for (const s of (m[2] ?? '').matchAll(/§(\d+)§/g)) offer(Number(s[1]), gloss, m[1] ? STRONG : MEDIUM);
+  }
+  for (const m of sentence.text.matchAll(COUNT)) {
+    const noun = m[2] ?? '';
+    if (!STOP.has(noun) && !DANGLING.has(noun)) offer(Number(m[1]), `number of ${noun}`, GUESS);
+  }
 
   for (const m of sentence.text.matchAll(/§(\d+)§/g)) {
     const index = Number(m[1]);
