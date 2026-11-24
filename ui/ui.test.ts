@@ -418,3 +418,62 @@ describe('formula cards (KaTeX)', () => {
     expect(rows[1]!.querySelector('.jump-sm')).toBeNull();
   });
 });
+
+describe('TermIndex.at hit-testing', () => {
+  /** Layout stub: each term's range occupies one line box; the caret API reports the paragraph's text node. */
+  function setup(caret: 'standard' | 'legacy') {
+    document.body.innerHTML = '<section id="S1"><p class="ltx_p">We use dropout and attention.</p></section>';
+    const index = new TermIndex(document, document.querySelectorAll('.ltx_p'), compileMatcher(GLOSSARY));
+    const text = document.querySelector('p')!.firstChild!;
+    const boxes = new Map(index.hits.map((h, i) => [h, { left: 100 + i * 120, right: 180 + i * 120, top: 50, bottom: 70 }]));
+    for (const [hit, box] of boxes) {
+      hit.range.getClientRects = () => [{ ...box, width: box.right - box.left, height: 20, x: box.left, y: box.top }] as unknown as DOMRectList;
+    }
+    const doc = document as Document & { caretPositionFromPoint?: unknown; caretRangeFromPoint?: unknown };
+    const saved = { pos: doc.caretPositionFromPoint, range: doc.caretRangeFromPoint };
+    if (caret === 'standard') {
+      Object.defineProperty(document, 'caretPositionFromPoint', { configurable: true, value: () => ({ offsetNode: text, offset: 0 }) });
+    } else {
+      delete (document as unknown as Record<string, unknown>).caretPositionFromPoint;
+      Object.defineProperty(document, 'caretRangeFromPoint', { configurable: true, value: () => ({ startContainer: text }) });
+    }
+    const restore = () => {
+      Object.defineProperty(document, 'caretPositionFromPoint', { configurable: true, value: saved.pos });
+      Object.defineProperty(document, 'caretRangeFromPoint', { configurable: true, value: saved.range });
+      if (saved.pos === undefined) delete (document as unknown as Record<string, unknown>).caretPositionFromPoint;
+    };
+    return { index, restore };
+  }
+
+  it('returns the term whose line box contains the point', () => {
+    const { index, restore } = setup('standard');
+    try {
+      expect(index.hits.map((h) => h.entry.id)).toEqual(['dropout', 'attention']);
+      expect(index.at(document, 150, 60)?.hit.entry.id).toBe('dropout');
+      expect(index.at(document, 260, 60)?.hit.entry.id).toBe('attention');
+      expect(index.at(document, 260, 60)?.rect.left).toBe(220);
+    } finally {
+      restore();
+    }
+  });
+
+  it('returns nothing when the caret lands in text but the point is outside every term box', () => {
+    const { index, restore } = setup('standard');
+    try {
+      expect(index.at(document, 500, 60)).toBeUndefined();
+      expect(index.at(document, 150, 90)).toBeUndefined();
+    } finally {
+      restore();
+    }
+  });
+
+  it('falls back to caretRangeFromPoint in older Chromium', () => {
+    const { index, restore } = setup('legacy');
+    try {
+      expect('caretPositionFromPoint' in document).toBe(false);
+      expect(index.at(document, 150, 60)?.hit.entry.id).toBe('dropout');
+    } finally {
+      restore();
+    }
+  });
+});
