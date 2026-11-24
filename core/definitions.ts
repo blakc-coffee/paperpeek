@@ -66,7 +66,7 @@ const STOP = new Set([
   'consist', 'consists', 'contain', 'contains', 'take', 'takes', 'multiply', 'divide', 'add',
   'generate', 'generates', 'produce', 'produces', 'require', 'requires', 'employ', 'employs',
   'implement', 'implements', 'perform', 'performs', 'project', 'projects', 'considering',
-  'whereas', 'together', 'into', 'onto', 'via',
+  'whereas', 'together', 'into', 'onto', 'via', 'but', 'because', 'since', 'while',
 ]);
 const DETERMINER = new Set(['the', 'a', 'an']);
 // A noun phrase ending in one of these is not naming the symbol: "the sum of x".
@@ -77,6 +77,8 @@ function clean(raw: string): string {
   const words = raw.replace(TRAILING_CUT, '').trim().split(/\s+/).filter(Boolean);
   while (words.length && LEADING_FILLER.has((words[0] ?? '').toLowerCase())) words.shift();
   while (words.length && DANGLING.has((words.at(-1) ?? '').toLowerCase())) words.pop();
+  // A lone adverb or gerund ("simply", "Writing") is never a definition.
+  if (words.length === 1 && /(?:ly|ing)$/i.test(words[0] ?? '')) return '';
   return words.slice(0, MAX_GLOSS_WORDS).join(' ');
 }
 
@@ -92,7 +94,7 @@ function nounPhraseBefore(text: string, end: number): string {
   for (let i = words.length - 1; i >= 0 && phrase.length < 6; i--) {
     const w = words[i];
     const lower = w?.toLowerCase() ?? '';
-    if (!w || /[,;:.!?()§]$/.test(w) || w.includes('§') || STOP.has(lower) || PARTICIPLE.test(w)) break;
+    if (!w || /[,;:.!?()§\]]$/.test(w) || /^[(\[]/.test(w) || w.includes('§') || STOP.has(lower) || PARTICIPLE.test(w)) break;
     phrase.unshift(w);
   }
   const last = phrase.at(-1);

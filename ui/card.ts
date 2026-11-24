@@ -35,7 +35,10 @@ function mathOf(doc: Document, el: Element): Element {
 /** "S3.SS2" → "3.2 Attention", from the LaTeXML section heading. */
 export function sectionLabel(doc: Document, sectionId: string | null): string {
   if (!sectionId) return '';
-  const title = doc.getElementById(sectionId)?.querySelector(':scope > .ltx_title')?.textContent ?? '';
+  // LaTeXML: <h3 class="ltx_title">; Wikipedia: <div class="mw-heading"><h2>; plain HTML: a direct heading.
+  const title =
+    doc.getElementById(sectionId)?.querySelector(':scope > .ltx_title, :scope > .mw-heading > :is(h2, h3, h4), :scope > :is(h2, h3, h4)')
+      ?.textContent ?? '';
   const label = title.replace(/\s+/g, ' ').trim();
   return label.length > MAX_BADGE ? `${label.slice(0, MAX_BADGE - 1)}…` : label;
 }

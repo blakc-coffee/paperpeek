@@ -19,9 +19,9 @@
 
 ## Where it works
 
-PaperPeek works on **arXiv HTML** papers (`arxiv.org/html/…`) and **ar5iv**, with symbols, terms, figures and demos.
-
-Support for Wikipedia, blogs and other sites you choose to enable is coming next.
+- **arXiv HTML** (`arxiv.org/html/…`) and **ar5iv**. These work out of the box, with symbols, terms, figures and demos.
+- **Any other site you enable** from the toolbar button: Wikipedia, blogs, GitHub, and others. On these sites you get terms, demos and lookups. You also get symbols wherever formulas are native MathML, as they are on Wikipedia.
+- **arXiv abstract pages, Hugging Face Papers and alphaXiv.** These show a link to open the paper's arXiv HTML version.
 
 ## Install from source
 
@@ -40,7 +40,7 @@ Then load it in Chrome:
 ## Privacy
 
 - No account, telemetry, server or AI model; everything runs in your browser.
-- The extension runs only on arXiv HTML pages.
+- The extension runs only on arXiv HTML and the sites you enable.
 - The only network request is the Wikipedia lookup. It is off unless you allow it, and it sends just the selected term.
 
 ## Credits and license

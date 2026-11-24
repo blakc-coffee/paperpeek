@@ -80,3 +80,10 @@ describe('findDefinitions', () => {
     expect(glosses('This is the sum of §0§ and §1§.', math('x'), math('y'))).toEqual({});
   });
 });
+
+describe('gloss hygiene', () => {
+  it('rejects a lone adverb or gerund as a weak appositive gloss', () => {
+    const maths = [{ id: 'm0', keys: ['a'] }];
+    expect(findDefinitions({ text: 'We simply §0§ here.', maths })).toEqual([]);
+  });
+});
