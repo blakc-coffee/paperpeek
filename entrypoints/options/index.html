@@ -47,6 +47,10 @@
       <label><input type="radio" name="wikipedia" value="always" /><span>Always look up <small>Sends each selected term not in the glossary. Results are cached for 7 days.</small></span></label>
       <label><input type="radio" name="wikipedia" value="never" /><span>Never <small>No network requests at all.</small></span></label>
     </fieldset>
+    <p id="consent" hidden>
+      <small>Firefox asks before an add-on sends search terms. Allow PaperPeek to send the terms you select to Wikipedia.</small>
+      <button type="button" id="allow">Allow in Firefox</button>
+    </p>
     <output id="status" aria-live="polite"></output>
     <fieldset class="sites">
       <legend>Sites you enabled</legend>

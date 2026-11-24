@@ -49,12 +49,22 @@ Remote code: none. All code ships in the package.
 ## Data usage disclosures (Chrome)
 
 - Collects: nothing.
-- Wikipedia: if the user allows it, the selected term is sent to en.wikipedia.org to fetch a summary. This is user-initiated, for the extension's single purpose, and not sold or transferred.
+- Wikipedia: if the user allows it, the selected term is sent to en.wikipedia.org to fetch a summary (on Firefox, after the built-in `searchTerms` consent). This is user-initiated, for the extension's single purpose, and not sold or transferred.
 - Certify: no sale of data, no use unrelated to the single purpose, no creditworthiness use.
 
 ## Firefox data collection
 
-`data_collection_permissions.required: ["none"]` holds, because the extension itself collects and transmits nothing about the user. The optional, user-triggered Wikipedia lookup sends a selected term to a third party. If AMO review asks, declare it as optional `searchTerms` and gate the lookup on that permission.
+The Firefox manifest declares:
+
+```json
+"data_collection_permissions": { "required": ["none"], "optional": ["searchTerms"] }
+```
+
+- `required: ["none"]`: the extension itself collects and transmits nothing about the user.
+- `optional: ["searchTerms"]`: the Wikipedia lookup sends the term the user selected to en.wikipedia.org. Firefox's built-in consent covers this.
+- At runtime, the lookup is gated on the grant. Before the first lookup, the popup says Firefox asks first and offers "Allow in settings". The options page then calls `permissions.request({ data_collection: ["searchTerms"] })` inside the click (or radio change) handler, as MDN requires a user action. Content scripts ask the background, which checks with `permissions.contains`.
+- Without the grant, no term is sent. "Never" needs no grant. Chrome ignores `browser_specific_settings` and has no consent step, so its build behaves as before.
+- Source: MDN `manifest.json/browser_specific_settings` (`data_collection_permissions`), `permissions.request`, `permissions.Permissions` (`data_collection`) and `permissions.contains`. MDN shows `data_collection` in a `contains` example but not in a `request` example, and its pages do not state a minimum Firefox version. Check the grant flow by hand in a current Firefox before submitting.
 
 ## Links
 

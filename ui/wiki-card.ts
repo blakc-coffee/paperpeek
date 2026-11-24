@@ -5,6 +5,7 @@ import { el } from './card';
 
 export type WikiState =
   | { s: 'ask'; term: string; onLookup: () => void }
+  | { s: 'consent'; term: string; onAllow: () => void }
   | { s: 'loading'; term: string }
   | { s: 'ok'; term: string; summary: WikiSummary }
   | { s: 'missing'; term: string }
@@ -34,6 +35,10 @@ export function renderWikiCard(doc: Document, state: WikiState): HTMLElement {
     case 'ask':
       card.appendChild(el(doc, 'p', 'short', 'Not in the PaperPeek glossary.'));
       foot.append(button(doc, 'Look up on Wikipedia', state.onLookup), el(doc, 'span', 'note', 'Sends only this term'));
+      break;
+    case 'consent':
+      card.appendChild(el(doc, 'p', 'short', 'Not in the PaperPeek glossary. Firefox asks you first before PaperPeek sends a term to Wikipedia.'));
+      foot.append(button(doc, 'Allow in settings', state.onAllow), el(doc, 'span', 'note', 'Only selected terms are sent'));
       break;
     case 'loading':
       card.setAttribute('aria-busy', 'true');

@@ -4,6 +4,7 @@
 
 import { browser } from 'wxt/browser';
 import { extractOccurrences, type SiteProfile } from '../adapters/arxiv-html';
+import { CONSENT_MESSAGE, effectiveMode, OPEN_OPTIONS_MESSAGE } from '../core/consent';
 import { compileMatcher } from '../core/glossary';
 import { SymbolTable } from '../core/symbol-table';
 import { cached, lookupWikipedia } from '../core/wiki';
@@ -29,8 +30,15 @@ export function startPaperPeek(doc: Document, profile: SiteProfile): () => void 
     match: compileMatcher([...glossary.entries, ...generated.entries]),
     popup,
     // Wikipedia is opt-in: 'ask' (default) asks before each lookup.
-    mode: async () => ((await browser.storage.local.get('wikipedia')).wikipedia as WikiMode | undefined) ?? 'ask',
+    // On Firefox the reader must also grant the optional searchTerms data collection.
+    mode: async () =>
+      effectiveMode(
+        ((await browser.storage.local.get('wikipedia')).wikipedia as WikiMode | undefined) ?? 'ask',
+        import.meta.env.FIREFOX,
+        async () => (await browser.runtime.sendMessage(CONSENT_MESSAGE)) === true,
+      ),
     wikipedia: cached(browser.storage.local, (term) => lookupWikipedia(term, (url, init) => fetch(url, init))),
+    allow: () => void browser.runtime.sendMessage(OPEN_OPTIONS_MESSAGE),
   });
 
   const defined = table.keys.filter((k) => table.occurrences(k).some((o) => o.definition)).length;
