@@ -66,6 +66,8 @@ export function renderCard(
   hovered: Element,
   result: LookupResult,
   onJump: (target: Element) => void,
+  /** Offered when the symbol appears more than once: highlights every use. */
+  uses?: { count: number; onShow: () => void },
 ): HTMLElement {
   const { occurrence, kind } = result;
   const def = occurrence.definition;
@@ -98,7 +100,17 @@ export function renderCard(
   const jump = el(doc, 'button', 'jump', JUMP[kind]);
   jump.type = 'button';
   jump.addEventListener('click', () => onJump(occurrence.el));
-  foot.append(jump, el(doc, 'span', 'note', NOTE[kind]));
+  foot.appendChild(jump);
+  if (uses && uses.count > 1) {
+    const all = el(doc, 'button', 'jump', `Show all ${uses.count} uses`);
+    all.type = 'button';
+    all.addEventListener('click', () => {
+      uses.onShow();
+      all.textContent = `Showing ${uses.count} uses · Esc clears`;
+    });
+    foot.appendChild(all);
+  }
+  foot.appendChild(el(doc, 'span', 'note', NOTE[kind]));
   card.appendChild(foot);
   return card;
 }

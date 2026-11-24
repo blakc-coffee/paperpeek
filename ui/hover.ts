@@ -6,6 +6,7 @@ import type { Occurrence, SymbolTable } from '../core/symbol-table';
 import { renderCard, renderCitationCard, renderEquationCard, renderFigureCard, renderFormulaCard, renderTermCard } from './card';
 import type { Popup } from './popup';
 import type { TermIndex } from './terms';
+import { clearUses, showUses } from './uses';
 
 const OPEN_DELAY_MS = 120;
 const CLOSE_DELAY_MS = 200;
@@ -92,7 +93,9 @@ function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, targ
       rect: () => occ.el.getBoundingClientRect(),
       card: () => {
         const result = table.lookup(occ.key, occ.order);
-        return result && renderCard(doc, occ.el, result, jump);
+        const all = table.occurrences(occ.key);
+        const uses = { count: all.length, onShow: () => void showUses(doc, all.map((o) => o.formula ?? o.el)) };
+        return result && renderCard(doc, occ.el, result, jump, uses);
       },
     };
   }
@@ -167,6 +170,7 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
     pending = hit.anchor;
     openTimer = window.setTimeout(() => {
       pending = null;
+      clearUses();
       const card = hit.card();
       if (!card) return;
       keepOpen();
@@ -188,11 +192,15 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
   };
 
   const onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape' && popup.isOpen) popup.hide(true);
+    if (e.key === 'Escape') {
+      clearUses();
+      if (popup.isOpen) popup.hide(true);
+    }
     // Alt+Shift+P: explain whatever sits at the text caret or selection (keyboard and caret-browsing users).
     if (e.altKey && e.shiftKey && e.code === 'KeyP') {
       const at = caretPoint(doc);
       const hit = at && hitAt(doc, sources, popup, at.target, at.x, at.y);
+      if (hit) clearUses();
       const card = hit?.card();
       if (!hit || !card) return;
       e.preventDefault();
