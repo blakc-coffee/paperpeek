@@ -165,13 +165,67 @@ export function renderFigureCard(
     card.appendChild(text);
   }
 
-  const below = Boolean(ref.compareDocumentPosition(figure) & Node.DOCUMENT_POSITION_FOLLOWING);
+  card.appendChild(refFoot(doc, ref, figure, label, onJump));
+  return card;
+}
+
+/** "↑/↓ Jump to <label>" (arrow by document order) plus the target's section, for cross-reference cards. */
+function refFoot(doc: Document, ref: Element, target: Element, label: string, onJump: (target: Element) => void): HTMLElement {
+  const below = Boolean(ref.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING);
   const foot = el(doc, 'div', 'foot');
   const jump = el(doc, 'button', 'jump', `${below ? '↓' : '↑'} Jump to ${label}`);
   jump.type = 'button';
-  jump.addEventListener('click', () => onJump(figure));
-  const badge = sectionLabel(doc, figure.closest('section[id]')?.id ?? null);
+  jump.addEventListener('click', () => onJump(target));
+  const badge = sectionLabel(doc, target.closest('section[id]')?.id ?? null);
   foot.append(jump, el(doc, 'span', 'note', badge ? `§ ${badge}` : 'From this paper'));
+  return foot;
+}
+
+/** "Equation (3)" from LaTeXML's equation tag; "Equation" when the equation is unnumbered. */
+export function equationLabel(equation: Element): string {
+  const tag = equation.querySelector('.ltx_tag_equation')?.textContent?.trim() ?? '';
+  return tag ? `Equation ${tag}` : 'Equation';
+}
+
+/** Preview of a numbered equation: its MathML (a sanitized clone) and a jump link. */
+export function renderEquationCard(doc: Document, ref: Element, equation: Element, onJump: (target: Element) => void): HTMLElement {
+  const label = equationLabel(equation);
+  const card = el(doc, 'div', 'card is-equation');
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', label);
+  const head = el(doc, 'div', 'head');
+  head.appendChild(el(doc, 'span', 'term', label));
+  const body = el(doc, 'div', 'equation');
+  for (const math of Array.from(equation.querySelectorAll('math'))) body.appendChild(mathOf(doc, math));
+  card.append(head, body, refFoot(doc, ref, equation, label, onJump));
+  return card;
+}
+
+const MAX_CITATION = 400;
+const ARXIV_ID = /(?:arXiv[:\s]*|arxiv\.org\/(?:abs|pdf)\/)(\d{4}\.\d{4,5})/i;
+
+/** Preview of a bibliography entry: the reference as text, an arXiv link when it names one, and a jump. */
+export function renderCitationCard(doc: Document, ref: Element, item: Element, onJump: (target: Element) => void): HTMLElement {
+  const tag = item.querySelector('.ltx_tag_bibitem')?.textContent?.trim() ?? '';
+  const label = tag ? `Reference ${tag}` : 'Reference';
+  const blocks = Array.from(item.querySelectorAll('.ltx_bibblock'));
+  const raw = (blocks.length ? blocks.map((b) => b.textContent ?? '') : [item.textContent?.replace(tag, '') ?? '']).join(' ');
+  const text = raw.replace(/\s+/g, ' ').trim();
+  const card = el(doc, 'div', 'card is-citation');
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', label);
+  const head = el(doc, 'div', 'head');
+  head.appendChild(el(doc, 'span', 'term', label));
+  card.append(head, el(doc, 'p', 'extract', text.length > MAX_CITATION ? `${text.slice(0, MAX_CITATION - 1).trimEnd()}…` : text));
+  const foot = refFoot(doc, ref, item, label, onJump);
+  const arxiv = ARXIV_ID.exec(text)?.[1];
+  if (arxiv) {
+    const link = el(doc, 'a', 'note', `arXiv:${arxiv}`);
+    link.href = `https://arxiv.org/abs/${arxiv}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    foot.appendChild(link);
+  }
   card.appendChild(foot);
   return card;
 }

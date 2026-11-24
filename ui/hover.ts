@@ -3,7 +3,7 @@
 // moves are coalesced to one hit-test per animation frame.
 
 import type { Occurrence, SymbolTable } from '../core/symbol-table';
-import { renderCard, renderFigureCard, renderFormulaCard, renderTermCard } from './card';
+import { renderCard, renderCitationCard, renderEquationCard, renderFigureCard, renderFormulaCard, renderTermCard } from './card';
 import type { Popup } from './popup';
 import type { TermIndex } from './terms';
 
@@ -32,12 +32,31 @@ export function formulaAt(table: SymbolTable, target: EventTarget | null): { el:
 }
 
 /** A cross-reference link under `target` that points at a figure or table on this page. */
-export function figureRefAt(doc: Document, target: EventTarget | null): { ref: Element; figure: Element } | undefined {
+export type CrossRefKind = 'figure' | 'equation' | 'citation';
+
+const CROSS_REF_TARGETS: Array<[CrossRefKind, string]> = [
+  ['figure', 'figure.ltx_figure, figure.ltx_table'],
+  ['equation', 'table.ltx_equation, table.ltx_equationgroup, .ltx_equationgroup'],
+  ['citation', 'li.ltx_bibitem'],
+];
+
+/** A LaTeXML cross-reference link under `target` and what it points at on this page. */
+export function crossRefAt(
+  doc: Document,
+  target: EventTarget | null,
+): { ref: Element; target: Element; kind: CrossRefKind } | undefined {
   const ref = target instanceof Element ? target.closest('a.ltx_ref[href^="#"]') : null;
   if (!ref) return undefined;
-  const figure = doc.getElementById(ref.getAttribute('href')?.slice(1) ?? '');
-  if (!figure?.matches('figure.ltx_figure, figure.ltx_table') || figure.contains(ref)) return undefined;
-  return { ref, figure };
+  const el = doc.getElementById(ref.getAttribute('href')?.slice(1) ?? '');
+  if (!el || el.contains(ref)) return undefined;
+  const kind = CROSS_REF_TARGETS.find(([, selector]) => el.matches(selector))?.[0];
+  return kind && { ref, target: el, kind };
+}
+
+/** A cross-reference link to a figure or table (kept for callers that only want figures). */
+export function figureRefAt(doc: Document, target: EventTarget | null): { ref: Element; figure: Element } | undefined {
+  const hit = crossRefAt(doc, target);
+  return hit?.kind === 'figure' ? { ref: hit.ref, figure: hit.target } : undefined;
 }
 
 export interface HoverSources {
@@ -91,9 +110,10 @@ function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, targ
       },
     };
   }
-  const fig = figureRefAt(doc, target);
-  if (fig) {
-    return { anchor: fig.ref, rect: () => fig.ref.getBoundingClientRect(), card: () => renderFigureCard(doc, fig.ref, fig.figure, jump) };
+  const xref = crossRefAt(doc, target);
+  if (xref) {
+    const render = { figure: renderFigureCard, equation: renderEquationCard, citation: renderCitationCard }[xref.kind];
+    return { anchor: xref.ref, rect: () => xref.ref.getBoundingClientRect(), card: () => render(doc, xref.ref, xref.target, jump) };
   }
   const term = terms.at(doc, x, y);
   return term && { anchor: term.hit, rect: () => term.rect, card: () => renderTermCard(doc, term.hit.entry, () => popup.relayout()) };

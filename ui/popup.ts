@@ -132,6 +132,8 @@ const STYLE = `
 .foot a { color: var(--accent); }
 .is-wiki .foot { clear: both; flex-wrap: wrap; }
 .skeleton { height: 60px; margin-top: 8px; border-radius: 6px; background: var(--accent-bg); }
+.equation { margin-top: 8px; overflow-x: auto; text-align: center; font-size: 16px; }
+.is-equation, .is-citation { max-width: min(440px, calc(100vw - 32px)); }
 .caption {
   margin-top: 8px; color: var(--fg); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
