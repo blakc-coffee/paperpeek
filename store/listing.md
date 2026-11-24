@@ -76,7 +76,7 @@ The Firefox manifest declares:
 
 1. Each GitHub release attaches `paperpeek-<version>-chrome.zip` and `paperpeek-<version>-firefox.zip`.
 2. Chrome: in the developer dashboard, create a new item, upload the Chrome zip, and paste the fields above.
-   - Add the five screenshots and the 128 px icon (`public/icon/128.png`).
+   - Add the five screenshots, the 128 px icon (`public/icon/128.png`), the small promo tile `store/promo-440x280.png` and the marquee `store/promo-1400x560.png`.
 3. Firefox: on addons.mozilla.org, submit a new add-on and upload the Firefox zip.
    - AMO may ask for the source zip (`pnpm zip:firefox` makes one), because the code is bundled.
 
