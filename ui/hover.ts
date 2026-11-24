@@ -168,7 +168,7 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
   };
 
   const onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape' && popup.isOpen) popup.hide();
+    if (e.key === 'Escape' && popup.isOpen) popup.hide(true);
     // Alt+Shift+P: explain whatever sits at the text caret or selection (keyboard and caret-browsing users).
     if (e.altKey && e.shiftKey && e.code === 'KeyP') {
       const at = caretPoint(doc);
@@ -178,7 +178,7 @@ export function attachHover(doc: Document, sources: HoverSources, popup: Popup):
       e.preventDefault();
       cancelOpen();
       keepOpen();
-      popup.show(hit.anchor, hit.rect(), card, true);
+      popup.show(hit.anchor, hit.rect(), card, true, true);
     }
   };
 

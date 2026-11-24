@@ -5,7 +5,7 @@ import { compileMatcher } from '../core/glossary';
 import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
 import { DEMOS } from './demos';
 import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
-import type { Popup } from './popup';
+import { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
 import { attachHover, caretPoint, figureRefAt, formulaAt, occurrenceAt } from './hover';
@@ -345,6 +345,7 @@ describe('keyboard selection lookup', () => {
       vi.advanceTimersByTime(1);
       expect(show).toHaveBeenCalledTimes(1);
       expect((show.mock.calls[0]![2] as HTMLElement).querySelector('.term')?.textContent).toBe('dropout');
+      expect(show.mock.calls[0]![4]).toBe(true); // keyboard-opened: takes focus
 
       document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
       vi.advanceTimersByTime(1000);
@@ -378,6 +379,17 @@ describe('Alt+Shift+P', () => {
     expect(show.mock.calls[0]![0]).toBe(dk);
     expect((show.mock.calls[0]![2] as HTMLElement).querySelector('.gloss')?.textContent).toBe('dimension of the keys');
     expect(show.mock.calls[0]![3]).toBe(true);
+    expect(show.mock.calls[0]![4]).toBe(true); // keyboard-opened: takes focus
+    detach();
+  });
+
+  it('Esc closes the popup and asks for focus to go back', () => {
+    document.body.innerHTML = '<p>text</p>';
+    const hide = vi.fn();
+    const popup = { host: document.createElement('div'), show: vi.fn(), hide, anchor: {}, isOpen: true, sticky: true } as unknown as Popup;
+    const detach = attachHover(document, { table: new SymbolTable([]), terms: new TermIndex(document, [], compileMatcher(GLOSSARY)) }, popup);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(hide).toHaveBeenCalledWith(true);
     detach();
   });
 
@@ -501,5 +513,101 @@ describe('sampling demo', () => {
     const atT1 = kept();
     setInput(0, '0.2');
     expect(kept()).toBeLessThan(atT1);
+  });
+});
+
+describe('popup focus', () => {
+  const RECT = new DOMRect(10, 10, 20, 20);
+  // happy-dom has no Popover API; a no-op is enough since focus is what these tests check.
+  if (!('showPopover' in HTMLElement.prototype)) {
+    Object.assign(HTMLElement.prototype, { showPopover() {}, hidePopover() {} });
+  }
+  const setup = () => {
+    document.body.innerHTML = '<input id="before">';
+    const before = document.getElementById('before') as HTMLInputElement;
+    before.focus();
+    const popup = new Popup(document);
+    const card = document.createElement('div');
+    const button = document.createElement('button');
+    card.append('text', button);
+    return { before, popup, card, button };
+  };
+
+  it('a keyboard-opened popup focuses its first button, and Esc returns focus', () => {
+    const { before, popup, card, button } = setup();
+    const focus = vi.spyOn(button, 'focus');
+    popup.show({}, RECT, card, true, true);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    const back = vi.spyOn(before, 'focus');
+    popup.hide(true);
+    expect(back).toHaveBeenCalledWith({ preventScroll: true });
+    expect(document.activeElement).toBe(before);
+    popup.host.remove();
+  });
+
+  it('focuses the card itself when it has no button', () => {
+    const { popup } = setup();
+    const card = document.createElement('div');
+    card.textContent = 'no controls';
+    const focus = vi.spyOn(card, 'focus');
+    popup.show({}, RECT, card, true, true);
+    expect(card.tabIndex).toBe(-1);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    popup.host.remove();
+  });
+
+  it('keeps focus on the new card when a keyboard popup swaps its content', () => {
+    const { popup, card } = setup();
+    popup.show({}, RECT, card, true, true);
+    const next = document.createElement('div');
+    const retry = document.createElement('button');
+    next.append(retry);
+    const focus = vi.spyOn(retry, 'focus');
+    popup.replace(next);
+    expect(focus).toHaveBeenCalled();
+    popup.host.remove();
+  });
+
+  it('a mouse-opened popup does not steal focus', () => {
+    const { before, popup, card, button } = setup();
+    const focus = vi.spyOn(button, 'focus');
+    popup.show({}, RECT, card, true);
+    expect(focus).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(before);
+    popup.hide(true);
+    expect(document.activeElement).toBe(before);
+    popup.host.remove();
+  });
+
+  it('closing without Esc leaves focus where it is', () => {
+    const { before, popup, card } = setup();
+    popup.show({}, RECT, card, true, true);
+    const focus = vi.spyOn(before, 'focus');
+    popup.hide();
+    expect(focus).not.toHaveBeenCalled();
+    popup.host.remove();
+  });
+});
+
+describe('mouse selection lookup', () => {
+  it('does not ask the popup to take focus', async () => {
+    vi.useFakeTimers();
+    try {
+      document.body.innerHTML = '<p>We apply <b>dropout</b> here.</p>';
+      const show = vi.fn();
+      const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null });
+      const range = document.createRange();
+      range.selectNodeContents(document.querySelector('b')!);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+      document.querySelector('b')!.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true, composed: true }));
+      vi.advanceTimersByTime(1);
+      expect(show).toHaveBeenCalledTimes(1);
+      expect(show.mock.calls[0]![4]).toBe(false);
+      detach();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
