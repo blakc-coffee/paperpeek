@@ -101,6 +101,28 @@ try {
       returnByValue: true,
     }, sessionId);
     check(options.value.checked === 'ask' && options.value.emptyShown, `options page: Wikipedia "ask" selected, empty site list shown`);
+
+    // Side panel protocol: from an extension page, ask an arXiv tab's content script for its symbols, then jump.
+    const { targetId: paperTab } = await send('Target.createTarget', { url: PAPER, background: true });
+    await sleep(9000);
+    const { result: panel } = await send('Runtime.evaluate', {
+      expression: `(async () => {
+        // tabs.query can't filter by URL without host permissions, so ask every tab.
+        let tab, reply;
+        for (const t of await chrome.tabs.query({})) {
+          reply = await chrome.tabs.sendMessage(t.id, { type: 'paperpeek:symbols' }).catch(() => undefined);
+          if (reply) { tab = t; break; }
+        }
+        const dk = reply.rows.find((r) => r.key === 'd_k');
+        const jumped = await chrome.tabs.sendMessage(tab.id, { type: 'paperpeek:jump', order: dk.order });
+        return { rows: reply.rows.length, dk: dk.gloss, jumped };
+      })()`,
+      awaitPromise: true,
+      returnByValue: true,
+    }, sessionId);
+    const p = panel.value ?? {};
+    check(p.rows > 20 && Boolean(p.dk) && p.jumped === true, `side panel: ${p.rows} symbols listed, d_k = "${p.dk}", jump works`);
+    await send('Target.closeTarget', { targetId: paperTab });
   } else {
     check(false, 'found the extension id for the options page');
   }

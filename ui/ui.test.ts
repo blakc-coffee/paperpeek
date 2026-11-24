@@ -9,6 +9,7 @@ import { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
 import { clearUses, showUses } from './uses';
+import { symbolRows } from './symbol-list';
 import { attachHover, caretPoint, crossRefAt, figureRefAt, formulaAt, occurrenceAt } from './hover';
 import { renderCitationCard, renderEquationCard, renderFormulaCard } from './card';
 import { extractOccurrences, GENERIC } from '../adapters/arxiv-html';
@@ -726,5 +727,18 @@ describe('show all uses', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('symbolRows (side panel data)', () => {
+  it('lists each symbol once, in reading order, with its definition, section and use count', () => {
+    const { dk, q, defined, undefinedQ } = fixture();
+    const second: Occurrence = { key: 'd_k', order: 2, mathId: 'm1', sectionId: 'S3', el: dk };
+    const rows = symbolRows(document, new SymbolTable([undefinedQ, defined, second]));
+    expect(rows).toEqual([
+      { key: 'd_k', gloss: 'dimension of the keys', sentence: '', section: '3.2.1 Scaled Dot-Product Attention', count: 2, order: 0 },
+      { key: 'Q', gloss: null, sentence: '', section: '3.2.1 Scaled Dot-Product Attention', count: 1, order: 1 },
+    ]);
+    expect(q).toBeTruthy();
   });
 });

@@ -4,6 +4,17 @@ const site = document.getElementById('site')!;
 const status = document.getElementById('status')!;
 const toggle = document.getElementById('toggle') as HTMLButtonElement;
 
+// The panel must open from a user action; Chrome calls it a side panel, Firefox a sidebar.
+document.getElementById('panel')!.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (import.meta.env.FIREFOX) {
+    void (browser as unknown as { sidebarAction: { open(): Promise<void> } }).sidebarAction.open();
+  } else {
+    void browser.windows.getCurrent().then((w) => browser.sidePanel.open({ windowId: w.id! }));
+  }
+  window.close();
+});
+
 document.getElementById('options')!.addEventListener('click', (e) => {
   e.preventDefault();
   void browser.runtime.openOptionsPage();
