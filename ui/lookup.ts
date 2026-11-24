@@ -41,19 +41,19 @@ export function glossaryEntryFor(text: string, match: (text: string) => TermMatc
 export function attachLookup(doc: Document, deps: LookupDeps): () => void {
   const { popup } = deps;
 
-  const show = async (term: string, range: Range): Promise<void> => {
+  const show = async (term: string, range: Range, keyboard: boolean): Promise<void> => {
     const rect = range.getBoundingClientRect();
     const anchor = {};
     const entry = glossaryEntryFor(term, deps.match);
     if (entry) {
-      popup.show(anchor, rect, renderTermCard(doc, entry, () => popup.relayout()), true);
+      popup.show(anchor, rect, renderTermCard(doc, entry, () => popup.relayout()), true, keyboard);
       return;
     }
     const mode = await deps.mode();
     if (mode === 'never') return;
 
     const fetchInto = async (): Promise<void> => {
-      if (popup.anchor !== anchor) popup.show(anchor, rect, renderWikiCard(doc, { s: 'loading', term }), true);
+      if (popup.anchor !== anchor) popup.show(anchor, rect, renderWikiCard(doc, { s: 'loading', term }), true, keyboard);
       else popup.replace(renderWikiCard(doc, { s: 'loading', term }));
       try {
         const summary = await deps.wikipedia(term);
@@ -65,28 +65,29 @@ export function attachLookup(doc: Document, deps: LookupDeps): () => void {
     };
 
     if (mode === 'always') await fetchInto();
-    else popup.show(anchor, rect, renderWikiCard(doc, { s: 'ask', term, onLookup: () => void fetchInto() }), true);
+    else popup.show(anchor, rect, renderWikiCard(doc, { s: 'ask', term, onLookup: () => void fetchInto() }), true, keyboard);
   };
 
-  const lookupSelection = (): void => {
+  /** `keyboard`: the selection came from Shift+Arrow, so the popup takes focus (mouse selections leave it alone). */
+  const lookupSelection = (keyboard: boolean): void => {
     const selection = doc.getSelection();
     const term = lookupText(selection);
-    if (term && selection) void show(term, selection.getRangeAt(0));
+    if (term && selection) void show(term, selection.getRangeAt(0), keyboard);
   };
 
   const onUp = (e: PointerEvent): void => {
     if (e.button !== 0 || e.composedPath().includes(popup.host)) return;
     // Let the browser finish updating the selection (double-click selects a word on pointerup).
-    window.setTimeout(lookupSelection, 0);
+    window.setTimeout(() => lookupSelection(false), 0);
   };
 
   // Keyboard selection: Shift+Arrow/Home/End/PageUp/PageDown extend it one step at a time,
   // so look up only once the reader pauses instead of on every keystroke.
   let keyTimer = 0;
   const onKeyUp = (e: KeyboardEvent): void => {
-    if (!e.shiftKey || !/^(?:Arrow\w+|Home|End|PageUp|PageDown)$/.test(e.key)) return;
+    if (!e.shiftKey || !/^(?:Arrow\w+|Home|End|PageUp|PageDown)$/.test(e.key) || e.composedPath().includes(popup.host)) return;
     window.clearTimeout(keyTimer);
-    keyTimer = window.setTimeout(lookupSelection, KEY_SETTLE_MS);
+    keyTimer = window.setTimeout(() => lookupSelection(true), KEY_SETTLE_MS);
   };
 
   doc.addEventListener('pointerup', onUp);

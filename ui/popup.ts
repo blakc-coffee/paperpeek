@@ -147,6 +147,9 @@ export class Popup {
   anchor: object | null = null;
   /** Sticky popups (opened from a text selection) ignore pointer movement; Esc, click outside or scroll close them. */
   sticky = false;
+  /** Keyboard-opened popups take focus; this is where it goes back to on Esc. Mouse-opened popups leave focus alone. */
+  private returnFocus: HTMLElement | null = null;
+  private takesFocus = false;
 
   constructor(private readonly doc: Document) {
     this.host = doc.createElement('paperpeek-popup');
@@ -164,8 +167,19 @@ export class Popup {
     return this.anchor !== null;
   }
 
-  show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement, sticky = false): void {
+  /**
+   * `focus`: the popup was opened from the keyboard, so move focus into it (first button, else the card)
+   * and remember where focus was for `hide(true)`.
+   */
+  show(anchor: object, anchorRect: DOMRectReadOnly, card: HTMLElement, sticky = false, focus = false): void {
     window.clearTimeout(this.closeTimer);
+    if (focus && !this.takesFocus) {
+      const active = this.doc.activeElement;
+      this.returnFocus = active instanceof HTMLElement && active !== this.host ? active : null;
+    } else if (!focus) {
+      this.returnFocus = null;
+    }
+    this.takesFocus = focus;
     this.anchor = anchor;
     this.sticky = sticky;
     this.anchorRect = anchorRect;
@@ -175,6 +189,7 @@ export class Popup {
     this.panel.replaceChildren(card);
     if (!this.panel.matches(':popover-open')) this.panel.showPopover();
     this.relayout();
+    if (focus) this.focusCard(card);
     // Next frame so the enter transition runs from the initial state.
     requestAnimationFrame(() => this.panel.classList.add('open'));
   }
@@ -184,6 +199,13 @@ export class Popup {
     if (!this.anchor) return;
     this.panel.replaceChildren(card);
     this.relayout();
+    if (this.takesFocus) this.focusCard(card);
+  }
+
+  private focusCard(card: HTMLElement): void {
+    const target = card.querySelector<HTMLElement>('button') ?? card;
+    if (target === card) card.tabIndex = -1;
+    target.focus({ preventScroll: true }); // a scroll would close the popup
   }
 
   /** Re-place the open card against its anchor, e.g. after a demo changed its height. */
@@ -201,9 +223,14 @@ export class Popup {
     this.panel.classList.add(side);
   }
 
-  hide(): void {
+  /** `restoreFocus` (Esc): send focus back to where it was before a keyboard-opened popup took it. */
+  hide(restoreFocus = false): void {
     if (!this.anchor) return;
     this.anchor = null;
+    const back = this.returnFocus;
+    this.returnFocus = null;
+    this.takesFocus = false;
+    if (restoreFocus && back?.isConnected) back.focus({ preventScroll: true });
     this.panel.classList.add('closing');
     this.panel.classList.remove('open');
     this.closeTimer = window.setTimeout(() => {
