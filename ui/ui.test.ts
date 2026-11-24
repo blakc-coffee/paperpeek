@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SymbolTable, type Occurrence } from '../core/symbol-table';
 import { compileMatcher } from '../core/glossary';
-import { figureLabel, renderCard, renderFigureCard, renderTermCard, sectionLabel } from './card';
+import { figureLabel, renderCard, renderFigureCard, renderTermCard, reportLink, sectionLabel } from './card';
 import { DEMOS } from './demos';
 import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
 import { Popup } from './popup';
@@ -740,5 +740,25 @@ describe('symbolRows (side panel data)', () => {
       { key: 'Q', gloss: null, sentence: '', section: '3.2.1 Scaled Dot-Product Attention', count: 1, order: 1 },
     ]);
     expect(q).toBeTruthy();
+  });
+});
+
+describe('report a wrong definition', () => {
+  it('pre-fills a GitHub issue with the page, symbol, gloss and sentence, and opens safely', () => {
+    const link = reportLink(document, 'd_k', 'dimension of the keys', 'keys of dimension $d_k$.');
+    const url = new URL(link.href);
+    expect(url.origin + url.pathname).toBe('https://github.com/blakc-coffee/paperpeek/issues/new');
+    expect(url.searchParams.get('title')).toBe('Wrong definition: d_k');
+    const body = url.searchParams.get('body')!;
+    expect(body).toContain('**Symbol:** `d_k`');
+    expect(body).toContain('**PaperPeek said:** dimension of the keys');
+    expect(body).toContain('**Source sentence:** keys of dimension $d_k$.');
+    expect([link.target, link.rel]).toEqual(['_blank', 'noopener noreferrer']);
+  });
+
+  it('appears in the symbol popup', () => {
+    const { dk, defined } = fixture();
+    const card = renderCard(document, dk, { occurrence: defined, kind: 'preceding' }, () => {});
+    expect(card.querySelector('a.report')?.textContent).toBe('Report');
   });
 });

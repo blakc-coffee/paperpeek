@@ -111,8 +111,29 @@ export function renderCard(
     foot.appendChild(all);
   }
   foot.appendChild(el(doc, 'span', 'note', NOTE[kind]));
+  foot.appendChild(reportLink(doc, occurrence.key, def?.gloss ?? null, def?.sentence ?? ''));
   card.appendChild(foot);
   return card;
+}
+
+const ISSUES = 'https://github.com/blakc-coffee/paperpeek/issues/new';
+
+/**
+ * "Report" opens a pre-filled GitHub issue in a new tab. Nothing is sent unless
+ * the reader submits the issue themselves.
+ */
+export function reportLink(doc: Document, key: string, gloss: string | null, sentence: string): HTMLAnchorElement {
+  const page = doc.location?.href ?? '';
+  const lines = [`**Page:** ${page}`, `**Symbol:** \`${key}\``, `**PaperPeek said:** ${gloss ?? '(no definition found)'}`];
+  if (sentence) lines.push(`**Source sentence:** ${sentence}`);
+  lines.push('', '**What it should be:** ');
+  const body = lines.join('\n');
+  const link = el(doc, 'a', 'note report', 'Report');
+  link.href = `${ISSUES}?${new URLSearchParams({ title: `Wrong definition: ${key}`, labels: 'wrong-definition', body }).toString()}`;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.setAttribute('aria-label', `Report a wrong definition for ${key} on GitHub`);
+  return link;
 }
 
 const MAX_PANELS = 3;
