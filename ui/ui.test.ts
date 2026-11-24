@@ -332,7 +332,7 @@ describe('keyboard selection lookup', () => {
       document.body.innerHTML = '<p>We apply <b>dropout</b> here.</p>';
       const show = vi.fn();
       const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
-      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null });
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null, allow: vi.fn() });
       const range = document.createRange();
       range.selectNodeContents(document.querySelector('b')!);
       document.getSelection()!.removeAllRanges();
@@ -596,7 +596,7 @@ describe('mouse selection lookup', () => {
       document.body.innerHTML = '<p>We apply <b>dropout</b> here.</p>';
       const show = vi.fn();
       const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
-      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null });
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'never', wikipedia: async () => null, allow: vi.fn() });
       const range = document.createRange();
       range.selectNodeContents(document.querySelector('b')!);
       document.getSelection()!.removeAllRanges();
@@ -605,6 +605,35 @@ describe('mouse selection lookup', () => {
       vi.advanceTimersByTime(1);
       expect(show).toHaveBeenCalledTimes(1);
       expect(show.mock.calls[0]![4]).toBe(false);
+      detach();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('Firefox consent card', () => {
+  it('a lookup without consent shows the consent card and sends nothing', async () => {
+    vi.useFakeTimers();
+    try {
+      document.body.innerHTML = '<p>We use <b>zebra stripes</b> here.</p>';
+      const show = vi.fn();
+      const allow = vi.fn();
+      const wikipedia = vi.fn(async () => null);
+      const popup = { host: document.createElement('div'), show, replace: vi.fn(), relayout: vi.fn(), anchor: null } as unknown as Popup;
+      const detach = attachLookup(document, { match: compileMatcher(GLOSSARY), popup, mode: async () => 'consent', wikipedia, allow });
+      const range = document.createRange();
+      range.selectNodeContents(document.querySelector('b')!);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+      document.querySelector('b')!.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true, composed: true }));
+      await vi.advanceTimersByTimeAsync(1);
+      expect(show).toHaveBeenCalledTimes(1);
+      const card = show.mock.calls[0]![2] as HTMLElement;
+      expect(card.classList.contains('is-consent')).toBe(true);
+      card.querySelector('button')!.click();
+      expect(allow).toHaveBeenCalledTimes(1);
+      expect(wikipedia).not.toHaveBeenCalled();
       detach();
     } finally {
       vi.useRealTimers();

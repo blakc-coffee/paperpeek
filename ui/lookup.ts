@@ -13,8 +13,11 @@ export type WikiMode = 'ask' | 'always' | 'never';
 export interface LookupDeps {
   match: (text: string) => TermMatch[];
   popup: Popup;
-  mode: () => Promise<WikiMode>;
+  /** 'consent': Firefox needs the reader's searchTerms grant first (see core/consent.ts). */
+  mode: () => Promise<WikiMode | 'consent'>;
   wikipedia: (term: string) => Promise<WikiSummary | null>;
+  /** Take the reader to where they can grant consent. */
+  allow: () => void;
 }
 
 const MAX_WORDS = 5;
@@ -51,6 +54,10 @@ export function attachLookup(doc: Document, deps: LookupDeps): () => void {
     }
     const mode = await deps.mode();
     if (mode === 'never') return;
+    if (mode === 'consent') {
+      popup.show(anchor, rect, renderWikiCard(doc, { s: 'consent', term, onAllow: deps.allow }), true, keyboard);
+      return;
+    }
 
     const fetchInto = async (): Promise<void> => {
       if (popup.anchor !== anchor) popup.show(anchor, rect, renderWikiCard(doc, { s: 'loading', term }), true, keyboard);

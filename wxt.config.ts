@@ -18,7 +18,9 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: 'paperpeek@blakc-coffee.github.io',
-        data_collection_permissions: { required: ['none'] },
+        // Wikipedia lookups send the selected term: optional searchTerms, granted
+        // by the reader on the options page before the first lookup (core/consent.ts).
+        data_collection_permissions: { required: ['none'], optional: ['searchTerms'] },
       },
     },
   },
