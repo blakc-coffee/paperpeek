@@ -1,0 +1,29 @@
+name: Bug report
+description: Something in PaperPeek doesn't work as expected
+labels: [bug]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The URL where it happened (an arXiv HTML paper, Wikipedia, a blog…)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 142, Firefox 145…
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PaperPeek version
+      description: Shown on chrome://extensions or about:addons
