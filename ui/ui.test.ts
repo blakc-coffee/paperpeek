@@ -477,3 +477,29 @@ describe('TermIndex.at hit-testing', () => {
     }
   });
 });
+
+describe('sampling demo', () => {
+  it('dims tokens outside the top-k and top-p cut-offs', () => {
+    const root = DEMOS.sampling!(document);
+    const inputs = Array.from(root.querySelectorAll('input[type=range]')) as HTMLInputElement[];
+    const setInput = (i: number, v: string) => {
+      inputs[i]!.value = v;
+      inputs[i]!.dispatchEvent(new Event('input'));
+    };
+    const kept = () => Array.from(root.querySelectorAll('rect.d-bar')).filter((r) => r.getAttribute('fill-opacity') === '1').length;
+    expect(inputs).toHaveLength(3);
+    setInput(2, '1');
+    expect(kept()).toBe(8);
+    setInput(1, '3');
+    expect(kept()).toBe(3);
+    expect(root.textContent).toContain('samples from 3 of 8 tokens');
+    setInput(2, '0.1');
+    expect(kept()).toBe(1);
+    // Low temperature sharpens the distribution: a mid-size nucleus shrinks to the top token.
+    setInput(1, '8');
+    setInput(2, '0.9');
+    const atT1 = kept();
+    setInput(0, '0.2');
+    expect(kept()).toBeLessThan(atT1);
+  });
+});

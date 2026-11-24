@@ -2,7 +2,7 @@
 // reader presses "Try it", from DOM APIs only, and updates SVG attributes in
 // place on input (no re-render, no framework).
 
-import { attentionWeights, descentPath, dropoutMask, gelu, relu, sigmoid, softmax } from '../core/demo-math';
+import { attentionWeights, descentPath, dropoutMask, gelu, nucleusSize, relu, sigmoid, softmax } from '../core/demo-math';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const W = 340;
@@ -224,10 +224,58 @@ function dropoutDemo(doc: Document): HTMLElement {
   return demo(doc, svg, control, resample);
 }
 
+const NEXT_TOKENS = ['the', 'a', 'this', 'our', 'its', 'one', 'each', 'we'];
+const NEXT_LOGITS = [3, 2.5, 2, 1.5, 1, 0.6, 0.3, 0];
+
+/** The usual LLM sampling pipeline: softmax(z / T), then keep the top k, then the top-p nucleus. */
+function samplingDemo(doc: Document): HTMLElement {
+  const svg = canvas(doc, 118, 'Next-token probabilities after temperature; bars outside the top-k and top-p cut-offs are dimmed');
+  const bars = NEXT_TOKENS.map((token, i) => {
+    const x = 20 + i * 38;
+    const bar = svgEl(doc, 'rect', { class: 'd-bar', x, width: 28, rx: 3 });
+    const value = svgEl(doc, 'text', { class: 'd-text d-small', x: x + 14, 'text-anchor': 'middle' });
+    svg.append(bar, value, svgEl(doc, 'text', { class: 'd-text', x: x + 14, y: 112, 'text-anchor': 'middle' }, token));
+    return { bar, value };
+  });
+  svg.append(svgEl(doc, 'line', { class: 'd-line', x1: 14, y1: 96, x2: 326, y2: 96 }));
+  const readout = svgEl(doc, 'text', { class: 'd-text', x: 326, y: 12, 'text-anchor': 'end' });
+  svg.appendChild(readout);
+
+  const state = { t: 1, k: 8, p: 0.9 };
+  const draw = (): void => {
+    const probs = softmax(NEXT_LOGITS, state.t);
+    const kept = Math.min(state.k, nucleusSize(probs, state.p));
+    probs.forEach((prob, i) => {
+      const h = Math.max(1, prob * 120);
+      set(bars[i]!.bar, { y: 96 - h, height: h, 'fill-opacity': i < kept ? 1 : 0.18 });
+      set(bars[i]!.value, { y: 96 - h - 3 });
+      bars[i]!.value.textContent = prob.toFixed(2).replace(/^0/, '');
+    });
+    readout.textContent = `samples from ${kept} of ${NEXT_TOKENS.length} tokens`;
+  };
+  const t = slider(doc, 'Temperature T', { min: 0.2, max: 3, step: 0.1, value: state.t }, (v) => {
+    state.t = v;
+    draw();
+    return `T = ${v.toFixed(1)}`;
+  });
+  const k = slider(doc, 'Top-k', { min: 1, max: 8, step: 1, value: state.k }, (v) => {
+    state.k = v;
+    draw();
+    return `k = ${v}`;
+  });
+  const p = slider(doc, 'Top-p', { min: 0.1, max: 1, step: 0.05, value: state.p }, (v) => {
+    state.p = v;
+    draw();
+    return `p = ${v.toFixed(2)}`;
+  });
+  return demo(doc, svg, t, k, p);
+}
+
 export const DEMOS: Record<string, (doc: Document) => HTMLElement> = {
   softmax: softmaxDemo,
   activations: activationsDemo,
   attention: attentionDemo,
   'gradient-descent': descentDemo,
   dropout: dropoutDemo,
+  sampling: samplingDemo,
 };

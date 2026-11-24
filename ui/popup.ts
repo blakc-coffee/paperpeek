@@ -117,6 +117,7 @@ const STYLE = `
 .demo { margin-top: 8px; }
 .demo svg { display: block; width: 100%; height: auto; }
 .control { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.control > span:first-child { flex: 0 0 104px; }
 .control input { flex: 1; min-width: 0; accent-color: var(--accent); }
 .control output { min-width: 56px; text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
 .chip {

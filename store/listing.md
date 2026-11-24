@@ -16,7 +16,7 @@ Reading ML papers means scrolling back to find where a symbol was introduced, or
 
 • Symbols: hover d_k and see the sentence that defined it, its section, and a link to jump there. When a symbol is redefined, you get the definition that applies at your position.
 • AI/ML terms: key terms are softly underlined. Hover one for a plain explanation, its formula and a diagram.
-• Try it: softmax temperature, activation functions, attention weights, gradient descent and dropout each have a small interactive demo.
+• Try it: softmax temperature, activation functions, attention weights, gradient descent, dropout and next-token sampling each have a small interactive demo.
 • Figures and tables: hover "Figure 2" to preview it with its caption.
 • Look anything up: select a phrase to check the bundled glossary of 459 terms, with an optional Wikipedia lookup for anything else.
 
