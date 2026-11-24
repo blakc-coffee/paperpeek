@@ -3,6 +3,7 @@
 // caret position under the pointer.
 
 import type { GlossaryEntry, TermMatch } from '../core/glossary';
+import { USES_STYLE } from './uses';
 
 /** Text inside these is never a term: formulas, links, citations, footnotes. */
 const SKIP = 'math, a, code, pre, kbd, nav, header, footer, .ltx_cite, .ltx_note, .ltx_title, .mw-editsection';

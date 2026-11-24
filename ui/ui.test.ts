@@ -8,6 +8,7 @@ import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
 import { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
+import { clearUses, showUses } from './uses';
 import { attachHover, caretPoint, crossRefAt, figureRefAt, formulaAt, occurrenceAt } from './hover';
 import { renderCitationCard, renderEquationCard, renderFormulaCard } from './card';
 import { extractOccurrences, GENERIC } from '../adapters/arxiv-html';
@@ -691,5 +692,39 @@ describe('equation and citation previews', () => {
     const withArxiv = renderCitationCard(document, arxivRef, document.getElementById('bib.bib7')!, () => {});
     const a = withArxiv.querySelector('a')!;
     expect([a.href, a.rel]).toEqual(['https://arxiv.org/abs/1706.03762', 'noopener noreferrer']);
+  });
+});
+
+describe('show all uses', () => {
+  it('offers the button only for symbols used more than once, and calls back on press', () => {
+    const { dk, defined } = fixture();
+    const onShow = vi.fn();
+    const many = renderCard(document, dk, { occurrence: defined, kind: 'preceding' }, () => {}, { count: 4, onShow });
+    const button = Array.from(many.querySelectorAll('button')).find((b) => b.textContent === 'Show all 4 uses')!;
+    button.click();
+    expect(onShow).toHaveBeenCalledOnce();
+    expect(button.textContent).toBe('Showing 4 uses · Esc clears');
+    const once = renderCard(document, dk, { occurrence: defined, kind: 'preceding' }, () => {}, { count: 1, onShow });
+    expect(Array.from(once.querySelectorAll('button')).some((b) => /Show all/.test(b.textContent ?? ''))).toBe(false);
+  });
+
+  it('paints one range per use and clears them', () => {
+    const { dk, q } = fixture();
+    const registry = new Map<string, unknown>();
+    vi.stubGlobal('CSS', { highlights: registry });
+    vi.stubGlobal('Highlight', class {
+      ranges: Range[];
+      constructor(...r: Range[]) {
+        this.ranges = r;
+      }
+    });
+    try {
+      expect(showUses(document, [dk, q])).toBe(2);
+      expect((registry.get('paperpeek-uses') as { ranges: Range[] }).ranges.map((r) => r.toString())).toEqual([dk.textContent, q.textContent]);
+      clearUses();
+      expect(registry.has('paperpeek-uses')).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
