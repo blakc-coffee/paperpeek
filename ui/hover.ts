@@ -3,7 +3,7 @@
 // moves are coalesced to one hit-test per animation frame.
 
 import type { Occurrence, SymbolTable } from '../core/symbol-table';
-import { renderCard, renderFigureCard, renderTermCard } from './card';
+import { renderCard, renderFigureCard, renderFormulaCard, renderTermCard } from './card';
 import type { Popup } from './popup';
 import type { TermIndex } from './terms';
 
@@ -18,6 +18,15 @@ export function occurrenceAt(table: SymbolTable, target: EventTarget | null): Oc
     if (occ) return occ;
     if (node.localName === 'math') return undefined;
     node = node.parentElement;
+  }
+  return undefined;
+}
+
+/** The KaTeX/MathJax formula under `target` and its symbols, climbing from the hovered glyph. */
+export function formulaAt(table: SymbolTable, target: EventTarget | null): { el: Element; occurrences: Occurrence[] } | undefined {
+  for (let node = target instanceof Element ? target : null; node; node = node.parentElement) {
+    const occurrences = table.byFormula.get(node);
+    if (occurrences) return { el: node, occurrences };
   }
   return undefined;
 }
@@ -65,6 +74,20 @@ function hitAt(doc: Document, { table, terms }: HoverSources, popup: Popup, targ
       card: () => {
         const result = table.lookup(occ.key, occ.order);
         return result && renderCard(doc, occ.el, result, jump);
+      },
+    };
+  }
+  const formula = formulaAt(table, target);
+  if (formula) {
+    return {
+      anchor: formula.el,
+      rect: () => formula.el.getBoundingClientRect(),
+      card: () => {
+        const seen = new Set<string>();
+        const rows = formula.occurrences
+          .filter((o) => !seen.has(o.key) && Boolean(seen.add(o.key)))
+          .map((o) => ({ occurrence: o, result: table.lookup(o.key, o.order) }));
+        return renderFormulaCard(doc, rows, jump);
       },
     };
   }

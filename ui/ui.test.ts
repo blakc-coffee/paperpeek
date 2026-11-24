@@ -8,7 +8,9 @@ import { attachLookup, glossaryEntryFor, lookupText } from './lookup';
 import type { Popup } from './popup';
 import { renderWikiCard } from './wiki-card';
 import { TermIndex } from './terms';
-import { attachHover, caretPoint, figureRefAt, occurrenceAt } from './hover';
+import { attachHover, caretPoint, figureRefAt, formulaAt, occurrenceAt } from './hover';
+import { renderFormulaCard } from './card';
+import { extractOccurrences, GENERIC } from '../adapters/arxiv-html';
 import { place } from './place';
 
 const VIEW = { width: 1280, height: 800 };
@@ -388,5 +390,31 @@ describe('Alt+Shift+P', () => {
     press();
     expect(show).not.toHaveBeenCalled();
     detach();
+  });
+});
+
+describe('formula cards (KaTeX)', () => {
+  it('finds the formula from a rendered glyph and lists each symbol with its definition', () => {
+    const katex = (tex: string, mathml: string) =>
+      `<span class="katex"><span class="katex-mathml"><math><semantics><mrow>${mathml}</mrow>` +
+      `<annotation encoding="application/x-tex">${tex}</annotation></semantics></math></span>` +
+      `<span class="katex-html" aria-hidden="true"><span class="mord glyph">${tex}</span></span></span>`;
+    document.body.innerHTML = `<article>
+      <p>Let ${katex('W', '<mi>W</mi>')} denote the weight matrix.</p>
+      <p>Then ${katex('Wx+b', '<mi>W</mi><mo>+</mo><mi>b</mi>')} is computed.</p></article>`;
+    const table = new SymbolTable(extractOccurrences(document, GENERIC));
+    const glyph = document.querySelectorAll('.glyph')[1]!;
+    const hit = formulaAt(table, glyph)!;
+    expect(hit.el).toBe(document.querySelectorAll('.katex')[1]);
+    expect(hit.occurrences.map((o) => o.key)).toEqual(['W', 'b']);
+
+    const onJump = vi.fn();
+    const card = renderFormulaCard(document, hit.occurrences.map((o) => ({ occurrence: o, result: table.lookup(o.key, o.order) })), onJump);
+    const rows = Array.from(card.querySelectorAll('.row'));
+    expect(rows.map((r) => r.querySelector('.gloss-sm')?.textContent)).toEqual(['weight matrix', 'Not defined in the text']);
+    expect(rows[0]!.querySelector('math')).not.toBeNull();
+    (rows[0]!.querySelector('.jump-sm') as HTMLButtonElement).click();
+    expect(onJump).toHaveBeenCalledWith(document.querySelectorAll('.katex')[0]);
+    expect(rows[1]!.querySelector('.jump-sm')).toBeNull();
   });
 });

@@ -23,7 +23,9 @@
 ## Where it works
 
 - **arXiv HTML** (`arxiv.org/html/…`) and **ar5iv**. These work out of the box, with symbols, terms, figures and demos.
-- **Any other site you enable** from the toolbar button: Wikipedia, blogs, GitHub, and others. On these sites you get terms, demos and lookups. You also get symbols wherever formulas are native MathML, as they are on Wikipedia.
+- **Any other site you enable** from the toolbar button: Wikipedia, blogs, GitHub, and others. On these sites you get terms, demos and lookups.
+  - Symbol definitions work wherever formulas are native MathML, as on Wikipedia.
+  - On KaTeX and MathJax blogs, hovering a formula lists each of its symbols with its definition.
 - **arXiv abstract pages, Hugging Face Papers and alphaXiv.** These show a link to open the paper's arXiv HTML version.
 
 ## Install from source
