@@ -54,6 +54,9 @@ function bars(values: number[], left: number, base: number, scale: number): stri
     .join('');
 }
 
+// Sorted next-token probabilities: cumulative 0.38, 0.60, 0.74, 0.83 → nucleus (p = 0.8) keeps 4.
+const SAMPLING_PROBS = [0.38, 0.22, 0.14, 0.09, 0.07, 0.05, 0.03, 0.02];
+
 const scores = [2, 1, 0.1, -1];
 const probs = softmax(scores);
 // Activation plot: x ∈ [−3, 3], y ∈ [−1, 3] mapped to 0..1.
@@ -182,5 +185,37 @@ export const DIAGRAMS: Record<string, string> = {
       text(280, 58, 'GELU', 'start') +
       `<line class="d-curve3" x1="252" y1="78" x2="272" y2="78"/>` +
       text(280, 82, 'sigmoid', 'start'),
+  ),
+  'cosine-annealing': svg(
+    112,
+    'Cosine annealing: the learning rate falls from its maximum to its minimum along half a cosine curve',
+    line(40, 88, 320, 88) +
+      line(40, 8, 40, 88) +
+      curve((t) => 0.05 + 0.9 * 0.5 * (1 + Math.cos(Math.PI * t)), 0, 1, [40, 8, 280, 80]) +
+      text(34, 20, 'η max', 'end') +
+      text(34, 88, 'η min', 'end') +
+      text(180, 106, 'training step →'),
+  ),
+  sampling: svg(
+    116,
+    'Next-token probabilities sorted from most to least likely; top-k keeps the 3 most likely, nucleus sampling keeps the fewest tokens whose probabilities reach 0.8',
+    bars(SAMPLING_PROBS, 20, 76, 140) +
+      line(14, 76, 200, 76) +
+      line(20, 88, 80, 88) +
+      text(86, 92, 'top-k, k = 3', 'start') +
+      line(20, 104, 102, 104) +
+      text(108, 108, 'nucleus, p = 0.8', 'start') +
+      text(212, 40, 'sorted next-token', 'start') +
+      text(212, 56, 'probabilities', 'start'),
+  ),
+  'gradient-clipping': svg(
+    100,
+    'Gradient clipping: a gradient three times longer than the threshold c is scaled down to length c, keeping its direction',
+    arrow(30, 30, 270, 30) +
+      text(276, 34, '‖g‖ = 3c', 'start') +
+      arrow(30, 70, 110, 70) +
+      text(118, 74, 'clipped: g · c / ‖g‖', 'start') +
+      `<line class="d-line d-thin" x1="110" y1="14" x2="110" y2="90"/>` +
+      text(110, 98, 'c'),
   ),
 };

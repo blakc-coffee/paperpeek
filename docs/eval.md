@@ -17,8 +17,8 @@ Reproduce with `pnpm eval:symdef`. The script downloads the split at run time; t
 |---|---|---|---|---|---|
 | 0.9 (strong patterns) | 88.2% | 11.9% | 20.9% | 81.4% | 30 / 4 / 223 |
 | 0.7 (trusted) | 87.8% | 14.2% | 24.5% | 81.8% | 36 / 5 / 217 |
-| 0.5 (+ noun phrase before the symbol) | 57.3% | 69.6% | 62.9% | 84.7% | 176 / 131 / 77 |
-| 0.4 (+ "N examples" counts) | 56.3% | 70.8% | 62.7% | 84.1% | 179 / 139 / 74 |
+| 0.5 (+ noun phrase before the symbol) | 58.1% | 69.6% | 63.3% | 85.4% | 176 / 127 / 77 |
+| 0.4 (+ "N examples" counts) | 57.0% | 70.8% | 63.1% | 84.8% | 179 / 135 / 74 |
 
 ### Baseline before tuning
 
@@ -47,3 +47,11 @@ Three changes came from reading the misses:
 PaperPeek now pairs "*a* and *b* are the input and output, respectively" one to one, giving *a* the gloss "input" and *b* the gloss "output". It only does this when the two lists have the same length. The SymDef scores above are unchanged: just 10 defined mentions in the test split sit in "respectively" sentences, and none of them has this shape.
 
 A reversed form, "the A and the B are *p* and *q*, respectively", was tried and removed. It added two false positives and no true positives, because SymDef's annotators do not count that phrasing as a definition.
+
+### Quantifier glosses
+
+Testing on a MathJax page (d2l.ai) turned up weak glosses like "x_i: any", "d: both" and "i: at position". Two fixes:
+- A noun phrase that ends in a quantifier (any, both, each, all, …) is rejected, because it doesn't name the symbol.
+- Leading prepositions (at, from, over, into) are trimmed.
+
+On SymDef this removed 4 false positives at ≥ 0.5 with no loss in recall. That moved precision from 57.3% to 58.1% and F1 from 62.9% to 63.3%; the table above shows the new numbers.
