@@ -14,6 +14,7 @@ import { attachHover } from './hover';
 import { attachLookup, type WikiMode } from './lookup';
 import { Popup } from './popup';
 import { paintTerms, TermIndex } from './terms';
+import { JUMP_MESSAGE, SYMBOLS_MESSAGE, symbolRows } from './symbol-list';
 
 /** Returns a teardown function. */
 export function startPaperPeek(doc: Document, profile: SiteProfile): () => void {
@@ -45,7 +46,22 @@ export function startPaperPeek(doc: Document, profile: SiteProfile): () => void 
   console.info(
     `[PaperPeek] ${table.keys.length} symbols (${defined} defined), ${terms.hits.length} terms, ready in ${(performance.now() - start).toFixed(0)} ms`,
   );
+  // Side panel: list this page's symbols, and jump to one on request.
+  const onMessage = (message: unknown): Promise<unknown> | undefined => {
+    const m = message as { type?: string; order?: number };
+    if (m.type === SYMBOLS_MESSAGE) return Promise.resolve({ title: doc.title, rows: symbolRows(doc, table) });
+    if (m.type === JUMP_MESSAGE && typeof m.order === 'number') {
+      const target = occurrenceByOrder.get(m.order);
+      if (target) popup.jumpTo(target.formula ?? target.el);
+      return Promise.resolve(Boolean(target));
+    }
+    return undefined;
+  };
+  const occurrenceByOrder = new Map(table.keys.flatMap((k) => table.occurrences(k)).map((o) => [o.order, o]));
+  browser.runtime.onMessage.addListener(onMessage);
+
   return () => {
+    browser.runtime.onMessage.removeListener(onMessage);
     detachHover();
     detachLookup();
     unpaint();
