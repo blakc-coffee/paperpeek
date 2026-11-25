@@ -1,0 +1,27 @@
+name: Wrong definition
+description: A symbol or term popup shows the wrong meaning (the popup's "Report" link fills this in)
+labels: [wrong-definition]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+    validations:
+      required: true
+  - type: input
+    id: symbol
+    attributes:
+      label: Symbol or term
+      placeholder: d_k
+    validations:
+      required: true
+  - type: textarea
+    id: shown
+    attributes:
+      label: What PaperPeek showed
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should be, and the sentence that defines it
+    validations:
+      required: true
