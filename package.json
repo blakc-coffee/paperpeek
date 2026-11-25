@@ -1,6 +1,6 @@
 {
   "name": "paperpeek",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Hover any symbol, AI/ML term or figure in a paper to see its definition, diagrams, figures and demos.",
   "license": "MIT",
